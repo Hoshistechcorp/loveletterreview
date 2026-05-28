@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Clock, Globe2, Heart, MapPin, Search, TrendingUp, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Clock, Globe2, Heart, MapPin, Search, TrendingUp, X } from "lucide-react";
 import { trendingVenues, type TrendingVenue } from "@/lib/love-letters/mockVenues";
 import { EmptyState } from "./EmptyState";
 import { WallSkeleton } from "./WallSkeleton";
@@ -281,19 +281,95 @@ export function WallOfLove({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="overflow-hidden border-t border-foreground/5"
+                        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                        className="relative overflow-hidden border-t border-foreground/5"
                       >
-                        <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:py-3.5">
-                          <p className="font-display text-sm italic leading-relaxed text-foreground/80 sm:text-base">
-                            <span className="font-semibold text-mint">
-                              I love this place because
-                            </span>{" "}
-                            {v.excerpt}
-                          </p>
-                          <button className="inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-love px-4 py-2 text-xs font-bold text-white shadow-glow-pink transition hover:brightness-110 sm:text-sm">
-                            Read &amp; Write more
-                          </button>
+                        {/* Layered gradient sheen */}
+                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-mint/[0.04] via-neon-pink/[0.06] to-transparent" />
+                        <div
+                          className="pointer-events-none absolute inset-0"
+                          style={{
+                            background:
+                              "radial-gradient(circle at 70% 20%, color-mix(in oklab, var(--neon-pink) 15%, transparent) 0%, transparent 50%)",
+                          }}
+                        />
+
+                        {/* Floating decorative hearts */}
+                        <Heart
+                          className="animate-float-heart pointer-events-none absolute left-8 top-6 h-7 w-7 fill-neon-pink/20 text-neon-pink/20 sm:left-12 sm:top-8 sm:h-8 sm:w-8"
+                          style={{ ["--heart-rot" as string]: "-12deg", animationDelay: "0s" }}
+                        />
+                        <Heart
+                          className="animate-float-heart pointer-events-none absolute bottom-16 right-10 h-6 w-6 fill-purple/10 text-purple/10 sm:bottom-20 sm:right-16"
+                          style={{
+                            ["--heart-rot" as string]: "45deg",
+                            ["--heart-scale" as string]: "1.25",
+                            animationDelay: "1.5s",
+                          }}
+                        />
+
+                        <div className="relative z-10 flex flex-col items-center px-6 py-8 text-center sm:px-10 sm:py-10">
+                          <motion.span
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.05 }}
+                            className="mb-5 font-display text-xs font-bold uppercase tracking-[0.2em] text-neon-pink sm:text-sm"
+                          >
+                            I love this place because
+                          </motion.span>
+
+                          <motion.div
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.12 }}
+                            className="relative mb-9 max-w-xl"
+                          >
+                            <span
+                              aria-hidden
+                              className="pointer-events-none absolute -left-6 -top-6 select-none font-display text-6xl leading-none text-neon-pink/20 sm:-left-8"
+                            >
+                              &ldquo;
+                            </span>
+                            <p
+                              className="text-lg font-medium leading-relaxed text-foreground/80 sm:text-2xl"
+                              style={{ fontFamily: "'DM Sans', Inter, system-ui, sans-serif" }}
+                            >
+                              {v.excerpt}
+                            </p>
+                            <span
+                              aria-hidden
+                              className="pointer-events-none absolute -bottom-10 -right-6 select-none font-display text-6xl leading-none text-neon-pink/20 sm:-right-8"
+                            >
+                              &rdquo;
+                            </span>
+                          </motion.div>
+
+                          <motion.button
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.2 }}
+                            className="group/cta relative inline-flex items-center gap-3 overflow-hidden rounded-full px-8 py-3.5 shadow-glow-pink transition-all duration-300 hover:scale-[1.03] active:scale-95 sm:px-10 sm:py-4"
+                          >
+                            <span className="absolute inset-0 bg-gradient-love" />
+                            <span className="absolute inset-0 bg-white/0 transition-opacity duration-300 group-hover/cta:bg-white/10" />
+                            <span className="relative font-display text-sm font-bold tracking-wide text-white sm:text-base">
+                              Read &amp; Write more
+                            </span>
+                            <ArrowRight className="relative h-5 w-5 text-white transition-transform group-hover/cta:translate-x-1" />
+                          </motion.button>
+
+                          <motion.div
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.28 }}
+                            className="mt-8 flex items-center gap-2"
+                          >
+                            <div className="h-px w-8 bg-neon-pink/20" />
+                            <span className="text-[11px] font-medium tracking-wider text-neon-pink/70">
+                              Featured Letter
+                            </span>
+                            <div className="h-px w-8 bg-neon-pink/20" />
+                          </motion.div>
                         </div>
                       </motion.div>
                     )}

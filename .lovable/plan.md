@@ -1,57 +1,61 @@
-# Wall of Love — Location search + Time filter
+# Redesign Wall of Love expandable row
 
-## Goals
-- Remove the 5 category chips (All / Cafés / Restaurants / Bars / Rooftops / Lounges) entirely. Venues stop being limited to those 5 types; category is no longer a filter.
-- Replace the Local / Regional / Global scope toggle with a **Google Maps–powered location search bar** (city, state, or country).
-- Add a **Time filter** alongside it (Today, This week, This month, All time).
-- Keep existing sort chips (Top rated, Most letters, New this week) and Top-10 ranking.
+Adopt the **Luminous gradient sheen** direction for the expanded panel on each Wall of Love item. Collapsed row stays exactly as it is today. Only one row open at a time (unchanged).
 
-## UX
+## What changes
+
+In `src/components/love-letters/WallOfLove.tsx`, replace the existing expanded `<motion.div>` block (currently a simple horizontal row with excerpt + pill button) with the new design.
+
+### Expanded panel structure (vertical stack, centered)
 
 ```text
-┌─ Wall of Love ─────────────────────────────────────┐
-│  [🔍 Search city, state, or country…    ▼]  [⏱ This week ▼] │
-│                                                    │
-│  [Top rated] [Most letters] [New this week]        │
-│                                                    │
-│  #1  Venue Name · Brooklyn, NY   ❤ 482  📝 37     │
-│  #2  …                                             │
-└────────────────────────────────────────────────────┘
+┌─ Expanded panel ─────────────────────────────────┐
+│  (floating ❤ top-left, floating ❤ bottom-right)  │
+│                                                  │
+│         I LOVE THIS PLACE BECAUSE  (mint label)  │
+│                                                  │
+│       " The atmosphere here is truly             │
+│         unparalleled, from the way the           │
+│         light hits the vintage counters… "       │
+│                                                  │
+│         [ Read & Write more  → ]  (gradient CTA) │
+│                                                  │
+│         ─── Featured Letter ───                  │
+└──────────────────────────────────────────────────┘
 ```
 
-- **Location input**: Google Places autocomplete (cities/regions/countries only). Empty input = Global. Selected place narrows ranking to venues inside that city / state / country. A small "Clear" affordance resets to Global. Header text updates dynamically ("Trending in Paris", "Trending worldwide").
-- **Time filter**: simple dropdown with `Today | This week | This month | All time` (default: All time). Filters mock venues by their `unlockedAt` / `createdAt` mock timestamp.
-- **Categories**: removed. Each card still shows the venue's `category` as a small badge for context (no filtering on it).
-- Venue mock data is expanded with more varied categories (speakeasy, jazz club, bakery, beach club, art gallery cafe, ramen bar, etc.) so it no longer feels limited to 5 types.
+### Visual treatment
 
-## Technical Changes
+- Background: layered gradient sheen using existing tokens — base `bg-gradient-to-tr from-mint/[0.04] via-neon-pink/[0.06] to-transparent` + radial pink glow at 70% 20% via inline `radial-gradient` using `color-mix(in oklab, var(--neon-pink) 15%, transparent)`.
+- Decorative quote marks (`"` / `"`) flanking the excerpt at low opacity using `text-neon-pink/20`.
+- Two floating heart SVGs (lucide `Heart` filled) — one top-left rotated -12°, one bottom-right rotated 45°/scale 1.25 — at low opacity.
+- **Animated hearts**: add a `float-heart` keyframe to `src/styles.css` (gentle 4s ease-in-out vertical drift ±6px + slight rotation wobble), staggered with `animation-delay` so the two hearts breathe out of phase. Respects `prefers-reduced-motion` via `@media (prefers-reduced-motion: reduce) { animation: none }`.
+- "Featured Letter" signature line at the bottom with thin `bg-neon-pink/20` dividers.
 
-### 1. Google Maps connector
-- Call `standard_connectors--connect` with `google_maps` so `VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY` is available client-side.
-- Load Maps JS API async with `loading=async&libraries=places&callback=initMap`.
-- Use **Places API (New)** `AutocompleteSuggestion.fetchAutocompleteSuggestions` (NOT legacy `Autocomplete`), restricted to `includedPrimaryTypes: ['locality','administrative_area_level_1','country']`.
-- On selection, resolve place details to `{ city, region, country }` and store in filter state.
+### Typography (already loaded)
 
-### 2. New component `LocationSearch.tsx`
-- Controlled input with debounced autocomplete suggestions list.
-- Emits `{ city?, region?, country? } | null` to parent.
-- Handles loading + error states (e.g. missing key → falls back to plain text input).
+- Eyebrow label "I LOVE THIS PLACE BECAUSE": `font-display` (Space Grotesk), uppercase, tracking-widest, `text-neon-pink`.
+- Excerpt: DM Sans medium (loaded once in `src/styles.css` next to the existing Inter/Space Grotesk `@import url(...)`).
+- CTA label: `font-display` semibold.
 
-### 3. `WallOfLove.tsx`
-- Remove `categoryFilter` state, category chip row, and `scope` (local/regional/global) toggle + its UI.
-- Add `locationFilter` and `timeFilter` state, persisted to URL search params (`wallLocation`, `wallTime`) alongside existing `wallFilter`.
-- Filtering pipeline: `venues → byLocation → byTime → sortBy(filter) → top 10`.
-- Header copy adapts to location ("Trending in {city}" / "worldwide").
-- Each card shows category as a subtle badge.
+### CTA
 
-### 4. `src/routes/index.tsx`
-- Extend `validateSearch` with `wallLocation` (string) and `wallTime` (`today|week|month|all`).
-- Pass through to `WallOfLove`.
+Re-implement the existing "Read & Write more" pill with the gradient sheen treatment: `bg-gradient-love` base + transparent white overlay that fades in on group-hover, arrow icon (`ArrowRight` from lucide) that nudges right on hover. Keep the existing click handler (currently no-op) intact.
 
-### 5. `src/lib/love-letters/mockVenues.ts`
-- Expand to ~25 venues across diverse categories (cafe, speakeasy, ramen bar, jazz club, beach club, gallery, bakery, wine bar, izakaya, brewery, tea house, etc.) and varied cities/countries.
-- Add `createdAt` timestamps spread across today/this week/this month/older to make the time filter meaningful.
+### Motion (Framer Motion, already used)
+
+Replace the current `initial/animate/exit` on the panel with a richer reveal:
+
+- Panel: `initial={{ height: 0, opacity: 0 }}` → `animate={{ height: 'auto', opacity: 1 }}`, `transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}`.
+- Inner content wrapper: staggered children — eyebrow (delay 0.05s), excerpt (0.12s), CTA (0.20s), signature (0.28s), each fading + sliding up 8px.
+
+## Files to touch
+
+- `src/components/love-letters/WallOfLove.tsx` — replace lines 277–300 (the `AnimatePresence` block for the expanded panel). Add imports for `ArrowRight` from `lucide-react`.
+- `src/styles.css` — add the DM Sans font import alongside the existing Google Fonts `@import`, add `--font-body-quote` token (optional), and add `@keyframes float-heart` + `.animate-float-heart` utility with the reduced-motion guard.
 
 ## Out of scope
-- No server route; autocomplete runs in the browser via the Maps JS API browser key.
-- No changes to Saved page, Write Letter flow, or word counter.
+
+- Collapsed row, rank chip, rating, letter count, chevron, category badge — unchanged.
+- Filter chips, location search, time dropdown, section header — unchanged.
+- `mockVenues.ts` — unchanged. The excerpt text already exists on each venue.
