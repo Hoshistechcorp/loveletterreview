@@ -72,14 +72,25 @@ export function WriteLetterModal({ open, venue, onClose, onSubmit }: Props) {
                   <HeartRating value={rating} onChange={setRating} />
                   <LetterEditor value={message} onChange={setMessage} />
 
-                  <button
-                    onClick={() => setStep("preview")}
-                    disabled={!message.trim()}
-                    className="w-full rounded-xl bg-gradient-love px-4 py-3 text-sm font-bold text-white shadow-glow-pink transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
-                  >
-                    Preview email →
-                  </button>
+                  {(() => {
+                    const words = countWords(message);
+                    const over = words > MAX_WORDS;
+                    const empty = !message.trim();
+                    const disabled = empty || over;
+                    return (
+                      <button
+                        onClick={() => setStep("preview")}
+                        disabled={disabled}
+                        className="w-full rounded-xl bg-gradient-love px-4 py-3 text-sm font-bold text-white shadow-glow-pink transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-base"
+                      >
+                        {over
+                          ? `Trim ${words - MAX_WORDS} word${words - MAX_WORDS === 1 ? "" : "s"} to continue`
+                          : "Preview email →"}
+                      </button>
+                    );
+                  })()}
                 </div>
+
               </>
             ) : (
               <EmailPreview
