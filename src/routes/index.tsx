@@ -52,7 +52,8 @@ export const Route = createFileRoute("/")({
 });
 
 function LoveLettersPage() {
-  const { wallFilter } = Route.useSearch();
+  const { wallFilter, wallLocation, wallTime } = Route.useSearch();
+
   const navigate = useNavigate();
 
   const [isSearching, setIsSearching] = useState(false);
@@ -110,9 +111,30 @@ function LoveLettersPage() {
         <WallOfLove
           filter={wallFilter}
           onFilterChange={(f) =>
-            navigate({ to: "/", search: { wallFilter: f }, replace: true })
+            navigate({
+              to: "/",
+              search: (prev) => ({ ...prev, wallFilter: f }),
+              replace: true,
+            })
+          }
+          location={wallLocation}
+          onLocationChange={(v) =>
+            navigate({
+              to: "/",
+              search: (prev) => ({ ...prev, wallLocation: v }),
+              replace: true,
+            })
+          }
+          time={wallTime}
+          onTimeChange={(t) =>
+            navigate({
+              to: "/",
+              search: (prev) => ({ ...prev, wallTime: t }),
+              replace: true,
+            })
           }
         />
+
         <OwnerTeaserBanner />
       </main>
 
