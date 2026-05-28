@@ -37,7 +37,7 @@ export function WallOfLove() {
                     ((e.currentTarget as HTMLImageElement).style.display = "none")
                   }
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-white/10 to-transparent" />
                 <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-xs font-bold text-white backdrop-blur">
                   #{i + 1}
                 </div>
