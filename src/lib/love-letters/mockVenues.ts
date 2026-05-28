@@ -11,6 +11,19 @@ export type Venue = {
 export type TrendingVenue = Venue & {
   rating: number;
   loveCount: number;
+  excerpt: string;
+  daysAgo: number;
+};
+
+export type SavedLetter = {
+  id: string;
+  venueName: string;
+  city: string;
+  excerpt: string;
+  rating: number;
+  loveCount: number;
+  savedAt: number; // ms timestamp
+  unlockedAt: number; // ms timestamp
 };
 
 export const mockSearchVenue = (name: string, city: string): Venue => ({
