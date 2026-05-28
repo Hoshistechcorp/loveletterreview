@@ -1,6 +1,9 @@
 import { motion } from "framer-motion";
 import { Heart, TrendingUp } from "lucide-react";
 import { trendingVenues } from "@/lib/love-letters/mockVenues";
+import { EmptyState } from "./EmptyState";
+
+const hasLetters = trendingVenues.length > 0;
 
 export function WallOfLove() {
   return (
