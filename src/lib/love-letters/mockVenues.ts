@@ -47,6 +47,8 @@ export const trendingVenues: TrendingVenue[] = [
     claimed: true,
     rating: 9.8,
     loveCount: 452,
+    excerpt: "the lavender latte and Sunday vinyl sessions feel like home.",
+    daysAgo: 12,
   },
   {
     id: "2",
@@ -58,6 +60,8 @@ export const trendingVenues: TrendingVenue[] = [
     claimed: true,
     rating: 9.6,
     loveCount: 389,
+    excerpt: "the omakase counter glows pink and chef Mika remembers everyone.",
+    daysAgo: 4,
   },
   {
     id: "3",
@@ -69,6 +73,8 @@ export const trendingVenues: TrendingVenue[] = [
     claimed: false,
     rating: 9.5,
     loveCount: 311,
+    excerpt: "the gumbo tastes like a hug from someone who's missed you.",
+    daysAgo: 21,
   },
   {
     id: "4",
@@ -80,6 +86,8 @@ export const trendingVenues: TrendingVenue[] = [
     claimed: true,
     rating: 9.4,
     loveCount: 278,
+    excerpt: "candlelight, low jazz, and a sommelier who actually listens.",
+    daysAgo: 2,
   },
   {
     id: "5",
@@ -91,6 +99,8 @@ export const trendingVenues: TrendingVenue[] = [
     claimed: false,
     rating: 9.3,
     loveCount: 244,
+    excerpt: "sunset hits the palms and suddenly everyone is your friend.",
+    daysAgo: 6,
   },
   {
     id: "6",
@@ -102,5 +112,44 @@ export const trendingVenues: TrendingVenue[] = [
     claimed: true,
     rating: 9.2,
     loveCount: 199,
+    excerpt: "the crust hits different at 1am after a show.",
+    daysAgo: 30,
   },
 ];
+
+const DAY = 24 * 60 * 60 * 1000;
+const now = Date.now();
+
+export const savedLettersMock: SavedLetter[] = [
+  {
+    id: "s1",
+    venueName: "Neon Koi",
+    city: "Brooklyn, NY",
+    excerpt: "the omakase counter glows pink and chef Mika remembers everyone.",
+    rating: 9.6,
+    loveCount: 389,
+    savedAt: now - 1 * DAY,
+    unlockedAt: now - 1 * DAY,
+  },
+  {
+    id: "s2",
+    venueName: "Honeybird Cafe",
+    city: "Austin, TX",
+    excerpt: "the lavender latte and Sunday vinyl sessions feel like home.",
+    rating: 9.8,
+    loveCount: 452,
+    savedAt: now - 9 * DAY,
+    unlockedAt: now - 3 * DAY,
+  },
+  {
+    id: "s3",
+    venueName: "Mama Lola's",
+    city: "New Orleans, LA",
+    excerpt: "the gumbo tastes like a hug from someone who's missed you.",
+    rating: 9.5,
+    loveCount: 311,
+    savedAt: now - 20 * DAY,
+    unlockedAt: now - 12 * DAY,
+  },
+];
+
