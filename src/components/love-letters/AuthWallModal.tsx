@@ -39,8 +39,11 @@ export function AuthWallModal({ open, onClose, onAuthed }: Props) {
                 💌
               </div>
               <h3 className="font-display text-2xl font-bold leading-tight">
-                Sign in to send your letter
+                Sign up to iBloov to send your letter
               </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Continue with Google or Apple to deliver your Love Letter.
+              </p>
             </div>
 
             <div className="mt-6 space-y-3">
