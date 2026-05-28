@@ -49,8 +49,8 @@ export function HeartRating({ value, onChange }: Props) {
             >
               {locked ? (
                 <div className="relative">
-                  <Heart className="h-7 w-7 text-white/15" />
-                  <Lock className="absolute inset-0 m-auto h-3 w-3 text-white/40" />
+                  <Heart className="h-7 w-7 text-black/15" />
+                  <Lock className="absolute inset-0 m-auto h-3 w-3 text-black/40" />
                 </div>
               ) : (
                 <motion.div
@@ -61,9 +61,10 @@ export function HeartRating({ value, onChange }: Props) {
                     className={
                       filled
                         ? "h-7 w-7 stroke-[1.5]"
-                        : "h-7 w-7 text-white/30 hover:text-neon-pink"
+                        : "h-7 w-7 text-black/25 hover:text-neon-pink"
                     }
                     style={
+
                       filled
                         ? {
                             fill: "url(#heartGrad)",
