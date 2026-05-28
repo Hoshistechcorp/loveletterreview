@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Heart, MapPin } from "lucide-react";
@@ -11,7 +11,21 @@ import {
   type SavedLetter,
 } from "@/lib/love-letters/mockVenues";
 
+type Tab = "newest" | "loved" | "unlocked";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "newest", label: "Newest" },
+  { id: "loved", label: "Most loved" },
+  { id: "unlocked", label: "Recently unlocked" },
+];
+
+const VALID_TABS: Tab[] = ["newest", "loved", "unlocked"];
+
 export const Route = createFileRoute("/saved")({
+  validateSearch: (search: Record<string, unknown>): { tab: Tab } => {
+    const t = search.tab;
+    return { tab: VALID_TABS.includes(t as Tab) ? (t as Tab) : "newest" };
+  },
   head: () => ({
     meta: [
       { title: "Saved — iBloov Love Letters" },
@@ -24,18 +38,14 @@ export const Route = createFileRoute("/saved")({
   component: SavedPage,
 });
 
-type Tab = "newest" | "loved" | "unlocked";
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: "newest", label: "Newest" },
-  { id: "loved", label: "Most loved" },
-  { id: "unlocked", label: "Recently unlocked" },
-];
-
 function SavedPage() {
+  const { tab } = Route.useSearch();
+  const navigate = useNavigate();
+  const setTab = (t: Tab) =>
+    navigate({ to: "/saved", search: { tab: t }, replace: true });
+
   const [isLoading, setIsLoading] = useState(true);
   const [savedLetters, setSavedLetters] = useState<SavedLetter[]>([]);
-  const [tab, setTab] = useState<Tab>("newest");
 
   useEffect(() => {
     const t = window.setTimeout(() => {
