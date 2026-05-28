@@ -113,7 +113,7 @@ function LoveLettersPage() {
           onFilterChange={(f) =>
             navigate({
               to: "/",
-              search: (prev) => ({ ...prev, wallFilter: f }),
+              search: { wallFilter: f, wallLocation, wallTime },
               replace: true,
             })
           }
@@ -121,7 +121,7 @@ function LoveLettersPage() {
           onLocationChange={(v) =>
             navigate({
               to: "/",
-              search: (prev) => ({ ...prev, wallLocation: v }),
+              search: { wallFilter, wallLocation: v, wallTime },
               replace: true,
             })
           }
@@ -129,11 +129,12 @@ function LoveLettersPage() {
           onTimeChange={(t) =>
             navigate({
               to: "/",
-              search: (prev) => ({ ...prev, wallTime: t }),
+              search: { wallFilter, wallLocation, wallTime: t },
               replace: true,
             })
           }
         />
+
 
         <OwnerTeaserBanner />
       </main>
