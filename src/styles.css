@@ -180,8 +180,6 @@
   }
   .animate-spin-heart {
     animation: spin-heart 1.2s ease-in-out infinite;
-  .animate-spin-heart {
-    animation: spin-heart 1.2s ease-in-out infinite;
   }
 
   @keyframes float-heart {
