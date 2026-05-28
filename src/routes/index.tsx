@@ -6,7 +6,7 @@ import { Hero } from "@/components/love-letters/Hero";
 import { PlaceFoundCard } from "@/components/love-letters/PlaceFoundCard";
 import { WriteLetterModal } from "@/components/love-letters/WriteLetterModal";
 import { AuthWallModal } from "@/components/love-letters/AuthWallModal";
-import { WallOfLove, type WallFilter } from "@/components/love-letters/WallOfLove";
+import { WallOfLove, type WallFilter, type WallTime } from "@/components/love-letters/WallOfLove";
 import { OwnerTeaserBanner } from "@/components/love-letters/OwnerTeaserBanner";
 import { Footer } from "@/components/love-letters/Footer";
 import {
@@ -15,14 +15,22 @@ import {
 } from "@/lib/love-letters/mockVenues";
 
 const VALID_FILTERS: WallFilter[] = ["top", "most", "new"];
+const VALID_TIMES: WallTime[] = ["today", "week", "month", "all"];
 
 export const Route = createFileRoute("/")({
-  validateSearch: (search: Record<string, unknown>): { wallFilter: WallFilter } => {
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { wallFilter: WallFilter; wallLocation: string; wallTime: WallTime } => {
     const f = search.wallFilter;
+    const t = search.wallTime;
+    const loc = search.wallLocation;
     return {
       wallFilter: VALID_FILTERS.includes(f as WallFilter) ? (f as WallFilter) : "top",
+      wallTime: VALID_TIMES.includes(t as WallTime) ? (t as WallTime) : "all",
+      wallLocation: typeof loc === "string" ? loc : "",
     };
   },
+
   head: () => ({
     meta: [
       { title: "iBloov Love Letters — Send love, not hate 💌" },
@@ -44,7 +52,8 @@ export const Route = createFileRoute("/")({
 });
 
 function LoveLettersPage() {
-  const { wallFilter } = Route.useSearch();
+  const { wallFilter, wallLocation, wallTime } = Route.useSearch();
+
   const navigate = useNavigate();
 
   const [isSearching, setIsSearching] = useState(false);
@@ -102,9 +111,31 @@ function LoveLettersPage() {
         <WallOfLove
           filter={wallFilter}
           onFilterChange={(f) =>
-            navigate({ to: "/", search: { wallFilter: f }, replace: true })
+            navigate({
+              to: "/",
+              search: { wallFilter: f, wallLocation, wallTime },
+              replace: true,
+            })
+          }
+          location={wallLocation}
+          onLocationChange={(v) =>
+            navigate({
+              to: "/",
+              search: { wallFilter, wallLocation: v, wallTime },
+              replace: true,
+            })
+          }
+          time={wallTime}
+          onTimeChange={(t) =>
+            navigate({
+              to: "/",
+              search: { wallFilter, wallLocation, wallTime: t },
+              replace: true,
+            })
           }
         />
+
+
         <OwnerTeaserBanner />
       </main>
 
