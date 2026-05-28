@@ -6,16 +6,15 @@ export function WallOfLove() {
   return (
     <section className="px-4 py-16">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8 flex items-end justify-between gap-4">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-mint">
-              <TrendingUp className="h-3.5 w-3.5" /> Wall of Love
-            </div>
-            <h2 className="font-display text-3xl font-bold sm:text-4xl">
-              Top Trending Places <span className="text-gradient-love">This Week</span>
-            </h2>
-          </div>
+        <div className="mb-8">
+          <p className="text-xs font-semibold uppercase tracking-widest text-mint">
+            <TrendingUp className="mr-1 inline h-3.5 w-3.5" /> Wall of Love
+          </p>
+          <h2 className="mt-2 font-display text-3xl font-bold sm:text-4xl">
+            Trending <span className="text-gradient-love">this week</span>
+          </h2>
         </div>
+
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {trendingVenues.map((v, i) => (
