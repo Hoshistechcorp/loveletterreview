@@ -1,7 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Navbar } from "@/components/love-letters/Navbar";
 import { Footer } from "@/components/love-letters/Footer";
 import { EmptyState } from "@/components/love-letters/EmptyState";
+import { WallSkeleton } from "@/components/love-letters/WallSkeleton";
 
 export const Route = createFileRoute("/saved")({
   head: () => ({
@@ -17,7 +19,16 @@ export const Route = createFileRoute("/saved")({
 });
 
 function SavedPage() {
-  const savedLetters: unknown[] = [];
+  const [isLoading, setIsLoading] = useState(true);
+  const [savedLetters, setSavedLetters] = useState<unknown[]>([]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setSavedLetters([]);
+      setIsLoading(false);
+    }, 700);
+    return () => window.clearTimeout(t);
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -31,7 +42,9 @@ function SavedPage() {
           </p>
         </div>
 
-        {savedLetters.length === 0 ? (
+        {isLoading ? (
+          <WallSkeleton count={3} />
+        ) : savedLetters.length === 0 ? (
           <div className="glass rounded-3xl">
             <EmptyState
               title="No saved letters yet"

@@ -1,11 +1,24 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Heart, TrendingUp } from "lucide-react";
-import { trendingVenues } from "@/lib/love-letters/mockVenues";
+import { trendingVenues, type TrendingVenue } from "@/lib/love-letters/mockVenues";
 import { EmptyState } from "./EmptyState";
-
-const hasLetters = trendingVenues.length > 0;
+import { WallSkeleton } from "./WallSkeleton";
 
 export function WallOfLove() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [venues, setVenues] = useState<TrendingVenue[]>([]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setVenues(trendingVenues);
+      setIsLoading(false);
+    }, 700);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  const hasLetters = venues.length > 0;
+
   return (
     <section className="px-4 py-16">
       <div className="mx-auto max-w-6xl">
@@ -18,10 +31,11 @@ export function WallOfLove() {
           </h2>
         </div>
 
-
-        {hasLetters ? (
+        {isLoading ? (
+          <WallSkeleton />
+        ) : hasLetters ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {trendingVenues.map((v, i) => (
+            {venues.map((v, i) => (
               <motion.article
                 key={v.id}
                 initial={{ opacity: 0, y: 24 }}
