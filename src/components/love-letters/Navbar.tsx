@@ -1,5 +1,6 @@
 import logo from "@/assets/ibloov-logo.jpeg";
-import { Menu } from "lucide-react";
+import { Menu, Bookmark } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 
 export function Navbar() {
   return (
