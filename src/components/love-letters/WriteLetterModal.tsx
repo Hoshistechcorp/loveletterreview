@@ -3,8 +3,9 @@ import { ArrowLeft, Mail, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { Venue } from "@/lib/love-letters/mockVenues";
 import { HeartRating } from "./HeartRating";
-import { LetterEditor } from "./LetterEditor";
-
+import { HeartRating } from "./HeartRating";
+import { LetterEditor, MAX_WORDS } from "./LetterEditor";
+import { countWords } from "@/lib/love-letters/wordCount";
 type Props = {
   open: boolean;
   venue: Venue | null;
