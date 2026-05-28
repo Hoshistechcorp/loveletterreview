@@ -1,16 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Globe2, Heart, MapPin, TrendingUp } from "lucide-react";
-import {
-  trendingVenues,
-  type TrendingVenue,
-  type VenueCategory,
-} from "@/lib/love-letters/mockVenues";
+import { ChevronDown, Clock, Globe2, Heart, MapPin, Search, TrendingUp, X } from "lucide-react";
+import { trendingVenues, type TrendingVenue } from "@/lib/love-letters/mockVenues";
 import { EmptyState } from "./EmptyState";
 import { WallSkeleton } from "./WallSkeleton";
 
 export type WallFilter = "top" | "most" | "new";
-export type WallScope = "local" | "regional" | "global";
+export type WallTime = "today" | "week" | "month" | "all";
 
 const FILTERS: { id: WallFilter; label: string }[] = [
   { id: "top", label: "Top rated" },
@@ -18,46 +14,46 @@ const FILTERS: { id: WallFilter; label: string }[] = [
   { id: "new", label: "New this week" },
 ];
 
-const SCOPES: { id: WallScope; label: string }[] = [
-  { id: "local", label: "Local" },
-  { id: "regional", label: "Regional" },
-  { id: "global", label: "Global" },
+const TIMES: { id: WallTime; label: string; days: number | null }[] = [
+  { id: "today", label: "Today", days: 1 },
+  { id: "week", label: "This week", days: 7 },
+  { id: "month", label: "This month", days: 30 },
+  { id: "all", label: "All time", days: null },
 ];
-
-const CATEGORIES: { id: VenueCategory; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "cafe", label: "Cafés" },
-  { id: "restaurant", label: "Restaurants" },
-  { id: "bar", label: "Bars" },
-  { id: "rooftop", label: "Rooftops" },
-  { id: "lounge", label: "Lounges" },
-];
-
-// Mock "you" — in a real app this comes from geolocation / profile.
-const USER_LOCATION = {
-  city: "Brooklyn, NY",
-  country: "United States",
-  region: "North America",
-};
 
 const TOP_N = 10;
 
 type Props = {
   filter?: WallFilter;
   onFilterChange?: (f: WallFilter) => void;
+  location?: string;
+  onLocationChange?: (v: string) => void;
+  time?: WallTime;
+  onTimeChange?: (t: WallTime) => void;
 };
 
-export function WallOfLove({ filter: filterProp, onFilterChange }: Props = {}) {
+export function WallOfLove({
+  filter: filterProp,
+  onFilterChange,
+  location: locationProp,
+  onLocationChange,
+  time: timeProp,
+  onTimeChange,
+}: Props = {}) {
   const [isLoading, setIsLoading] = useState(true);
   const [venues, setVenues] = useState<TrendingVenue[]>([]);
   const [filterState, setFilterState] = useState<WallFilter>("top");
-  const filter = filterProp ?? filterState;
-  const setFilter = (f: WallFilter) => {
-    onFilterChange ? onFilterChange(f) : setFilterState(f);
-  };
-  const [scope, setScope] = useState<WallScope>("global");
-  const [category, setCategory] = useState<VenueCategory>("all");
+  const [locationState, setLocationState] = useState("");
+  const [timeState, setTimeState] = useState<WallTime>("all");
+  const [timeOpen, setTimeOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  const filter = filterProp ?? filterState;
+  const setFilter = (f: WallFilter) => (onFilterChange ? onFilterChange(f) : setFilterState(f));
+  const location = locationProp ?? locationState;
+  const setLocation = (v: string) => (onLocationChange ? onLocationChange(v) : setLocationState(v));
+  const time = timeProp ?? timeState;
+  const setTime = (t: WallTime) => (onTimeChange ? onTimeChange(t) : setTimeState(t));
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -70,15 +66,22 @@ export function WallOfLove({ filter: filterProp, onFilterChange }: Props = {}) {
   const sorted = useMemo(() => {
     let copy = [...venues];
 
-    // Scope: local (same city) → regional (same continent) → global (all)
-    if (scope === "local") {
-      copy = copy.filter((v) => v.city === USER_LOCATION.city);
-    } else if (scope === "regional") {
-      copy = copy.filter((v) => v.region === USER_LOCATION.region);
+    // Location: substring match across city, country, region.
+    const q = location.trim().toLowerCase();
+    if (q) {
+      copy = copy.filter(
+        (v) =>
+          v.city.toLowerCase().includes(q) ||
+          v.country.toLowerCase().includes(q) ||
+          v.region.toLowerCase().includes(q),
+      );
     }
 
-    if (category !== "all") {
-      copy = copy.filter((v) => v.category === category);
+    // Time
+    const cutoff = TIMES.find((x) => x.id === time)?.days ?? null;
+    if (cutoff !== null) {
+      const since = Date.now() - cutoff * 24 * 60 * 60 * 1000;
+      copy = copy.filter((v) => v.createdAt >= since);
     }
 
     if (filter === "top") copy.sort((a, b) => b.rating - a.rating);
@@ -86,16 +89,11 @@ export function WallOfLove({ filter: filterProp, onFilterChange }: Props = {}) {
     else copy = copy.filter((v) => v.daysAgo <= 7).sort((a, b) => a.daysAgo - b.daysAgo);
 
     return copy.slice(0, TOP_N);
-  }, [venues, filter, scope, category]);
+  }, [venues, filter, location, time]);
 
   const hasLetters = sorted.length > 0;
-
-  const scopeLabel =
-    scope === "local"
-      ? USER_LOCATION.city
-      : scope === "regional"
-      ? USER_LOCATION.region
-      : "the world";
+  const timeLabel = TIMES.find((t) => t.id === time)?.label ?? "All time";
+  const headerScope = location.trim() ? location.trim() : "the world";
 
   return (
     <section className="px-4 py-12 sm:py-16">
@@ -105,52 +103,73 @@ export function WallOfLove({ filter: filterProp, onFilterChange }: Props = {}) {
             <TrendingUp className="mr-1 inline h-3.5 w-3.5" /> Wall of Love · Top {TOP_N}
           </p>
           <h2 className="mt-2 font-display text-2xl font-bold sm:text-4xl">
-            Trending across{" "}
-            <span className="text-gradient-love">{scopeLabel}</span>
+            Trending across <span className="text-gradient-love">{headerScope}</span>
           </h2>
           <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground sm:text-sm">
             <Globe2 className="h-3.5 w-3.5 text-mint" />
-            Rankings update by scope, category, and time.
+            Search any city, state, or country — then narrow by time.
           </p>
 
-          {/* Scope (Local / Regional / Global) */}
-          <div className="mt-4 inline-flex rounded-full border border-foreground/15 bg-foreground/[0.03] p-1">
-            {SCOPES.map((s) => {
-              const active = scope === s.id;
-              return (
+          {/* Location + Time */}
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Search city, state, or country…"
+                className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-2.5 text-sm text-foreground placeholder:text-foreground/40 outline-none transition focus:border-mint/60 focus:bg-foreground/[0.05] focus:shadow-glow-mint"
+              />
+              {location && (
                 <button
-                  key={s.id}
-                  onClick={() => setScope(s.id)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
-                    active
-                      ? "bg-gradient-mint text-white shadow-glow-mint"
-                      : "text-foreground/60 hover:text-foreground"
-                  }`}
+                  onClick={() => setLocation("")}
+                  aria-label="Clear location"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-foreground/40 hover:text-foreground"
                 >
-                  {s.label}
+                  <X className="h-4 w-4" />
                 </button>
-              );
-            })}
-          </div>
+              )}
+            </div>
 
-          {/* Category chips */}
-          <div className="mt-3 flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => {
-              const active = category === c.id;
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => setCategory(c.id)}
-                  className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition sm:text-xs ${
-                    active
-                      ? "border-mint/60 bg-mint/10 text-mint"
-                      : "border-foreground/10 bg-foreground/[0.02] text-foreground/60 hover:border-mint/30 hover:text-foreground"
-                  }`}
-                >
-                  {c.label}
-                </button>
-              );
-            })}
+            <div className="relative">
+              <button
+                onClick={() => setTimeOpen((o) => !o)}
+                className="inline-flex w-full items-center justify-between gap-2 rounded-full border border-foreground/15 bg-foreground/[0.03] px-4 py-2.5 text-sm font-semibold text-foreground/80 transition hover:border-mint/40 sm:w-auto"
+              >
+                <Clock className="h-4 w-4 text-mint" />
+                {timeLabel}
+                <ChevronDown className={`h-4 w-4 transition-transform ${timeOpen ? "rotate-180" : ""}`} />
+              </button>
+              <AnimatePresence>
+                {timeOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-2xl border border-foreground/10 bg-background/95 shadow-xl backdrop-blur"
+                  >
+                    {TIMES.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => {
+                          setTime(t.id);
+                          setTimeOpen(false);
+                        }}
+                        className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm transition ${
+                          time === t.id
+                            ? "bg-mint/10 font-semibold text-mint"
+                            : "text-foreground/80 hover:bg-foreground/5"
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Sort filter */}
@@ -286,8 +305,8 @@ export function WallOfLove({ filter: filterProp, onFilterChange }: Props = {}) {
         ) : (
           <div className="glass rounded-3xl">
             <EmptyState
-              title={`No Love Letters in ${scopeLabel} yet`}
-              subtitle="Try a wider scope or different category — or be the first to spread the love."
+              title={`No Love Letters in ${headerScope} yet`}
+              subtitle="Try a different location or widen the time window — or be the first to spread the love."
               ctaLabel="Send a Love Letter"
               ctaHref="/"
             />
