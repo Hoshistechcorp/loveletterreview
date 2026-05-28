@@ -10,6 +10,13 @@ export function Navbar() {
           <img src={logo} alt="iBloov" className="h-8 w-auto object-contain" />
         </a>
         <div className="flex items-center gap-2">
+          <Link
+            to="/saved"
+            className="rounded-full border border-black/10 bg-white p-2 text-foreground/70 hover:bg-black/5"
+            aria-label="Saved"
+          >
+            <Bookmark className="h-5 w-5" />
+          </Link>
           <a
             href="https://auralink.ibloov.com"
             target="_blank"
