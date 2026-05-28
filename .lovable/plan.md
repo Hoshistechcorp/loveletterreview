@@ -1,72 +1,57 @@
-# iBloov Love Letters — Build Plan
+# Wall of Love — Location search + Time filter
 
-A single-page marketing + interactive app at `/` (loveletterreview.ibloov.com style). Frontend-only with mocked data — no backend, no real auth, no Places API.
+## Goals
+- Remove the 5 category chips (All / Cafés / Restaurants / Bars / Rooftops / Lounges) entirely. Venues stop being limited to those 5 types; category is no longer a filter.
+- Replace the Local / Regional / Global scope toggle with a **Google Maps–powered location search bar** (city, state, or country).
+- Add a **Time filter** alongside it (Today, This week, This month, All time).
+- Keep existing sort chips (Top rated, Most letters, New this week) and Top-10 ranking.
 
-## Aesthetic decision (flagging a tension)
-
-Your spec says **dark mode "Mint Modernism"** (#0A0A0A bg, mint #3EB489, neon pink #FF2E7F, purple, glassmorphism). The attached iBloov.com screenshot is **light mode** with blue/orange playful branding.
-
-I'll go with the **explicit dark Mint Modernism spec** since it's detailed and intentional, but bring in the iBloov logo + brand DNA (heart motif, "x = love" warmth, the iBLOOv wordmark with orange "oo" smile) so it still reads as part of the iBloov family. If you want light mode instead, tell me before I implement.
-
-## Pages & structure
-
-Single route: `src/routes/index.tsx` composing section components from `src/components/love-letters/`.
+## UX
 
 ```text
-src/
-├─ routes/index.tsx                 (page composition + SEO head)
-├─ components/love-letters/
-│  ├─ Navbar.tsx                    (logo + AuraLink link)
-│  ├─ Hero.tsx                      (headline + search)
-│  ├─ PlaceFoundCard.tsx            (glass card, unclaimed badge)
-│  ├─ WriteLetterModal.tsx          (hearts + editor + submit)
-│  ├─ HeartRating.tsx               (10 hearts, 1-3 locked)
-│  ├─ LetterEditor.tsx              (postcard textarea, word count)
-│  ├─ AuthWallModal.tsx             (Google/Apple buttons)
-│  ├─ SuccessOverlay.tsx            (floating hearts confetti)
-│  ├─ WallOfLove.tsx                (leaderboard grid)
-│  ├─ OwnerTeaserBanner.tsx         (B2B CTA → AuraLink)
-│  └─ Footer.tsx
-├─ lib/love-letters/
-│  ├─ mockVenues.ts                 (search results + leaderboard)
-│  └─ wordCount.ts
-└─ assets/ibloov-logo.png           (copied from upload)
+┌─ Wall of Love ─────────────────────────────────────┐
+│  [🔍 Search city, state, or country…    ▼]  [⏱ This week ▼] │
+│                                                    │
+│  [Top rated] [Most letters] [New this week]        │
+│                                                    │
+│  #1  Venue Name · Brooklyn, NY   ❤ 482  📝 37     │
+│  #2  …                                             │
+└────────────────────────────────────────────────────┘
 ```
 
-## Section-by-section
+- **Location input**: Google Places autocomplete (cities/regions/countries only). Empty input = Global. Selected place narrows ranking to venues inside that city / state / country. A small "Clear" affordance resets to Global. Header text updates dynamically ("Trending in Paris", "Trending worldwide").
+- **Time filter**: simple dropdown with `Today | This week | This month | All time` (default: All time). Filters mock venues by their `unlockedAt` / `createdAt` mock timestamp.
+- **Categories**: removed. Each card still shows the venue's `category` as a small badge for context (no filtering on it).
+- Venue mock data is expanded with more varied categories (speakeasy, jazz club, bakery, beach club, art gallery cafe, ramen bar, etc.) so it no longer feels limited to 5 types.
 
-1. **Navbar** — iBloov logo left, "Store" + hamburger pattern from iBloov.com, plus a "Claim your venue" link to auralink.ibloov.com.
-2. **Hero** — Headline "Don't Leave a Review. Leave a Love Letter. 💌", subhead, dual-input search ("Place Name" + "City"), glowing mint "Find Place" button with spinning heart loading state.
-3. **Place Found Card** — Glassmorphism card with mocked venue (name, address, website, placeholder image). Pulsing pink "Be the first to send them love!" badge for unclaimed state + subtle "Are you the owner? Claim this page" link. Big "Write Letter" CTA.
-4. **Write Letter Modal** (slide-up, framer-motion):
-   - **Heart rating**: 10 hearts in a row. Hearts 1–3 permanently gray + lock icon; hover/click shows tooltip "At iBloov, we only spread love. 4 hearts is our minimum! ❤️". Hearts 4–10 fill with pink→purple neon gradient.
-   - **Editor**: textarea styled as glowing neon postcard. The prefix **"I love this place because..."** is rendered as a non-editable inline label; the textarea value starts empty after it and only the user's continuation is editable (enforced via controlled value, never letting user delete the prefix). Word counter "Words: X/100" with red state at limit; hard cap at 100 words.
-   - **Submit**: "Send Love 💌" button.
-5. **Auth Wall** — On submit, since auth is mocked to false, slide-up modal: "Claim your AuraLink ID to deliver this letter!" + "Continue with Google" + "Continue with Apple" buttons. Clicking either flips local auth state → closes auth wall → triggers Success Overlay: floating hearts animation (framer-motion) + message "Love Letter Sent! We are notifying the owners right now so they can unlock and read your message."
-6. **Wall of Love** — "Top Trending Places This Week" grid of 6 mocked venues (image, name, "9.8/10 💖", "452 Love Letters"), staggered fade-in on scroll. Below it: distinct gradient B2B banner "Are you a restaurant or venue owner? You might have unread Love Letters waiting for you." with "Unlock Your Letters at auralink.ibloov.com →" button.
+## Technical Changes
 
-## Design tokens (src/styles.css)
+### 1. Google Maps connector
+- Call `standard_connectors--connect` with `google_maps` so `VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY` is available client-side.
+- Load Maps JS API async with `loading=async&libraries=places&callback=initMap`.
+- Use **Places API (New)** `AutocompleteSuggestion.fetchAutocompleteSuggestions` (NOT legacy `Autocomplete`), restricted to `includedPrimaryTypes: ['locality','administrative_area_level_1','country']`.
+- On selection, resolve place details to `{ city, region, country }` and store in filter state.
 
-Add dark theme defaults + brand tokens (all `oklch`):
-- `--background` ≈ #0A0A0A
-- `--mint` (≈ #3EB489), `--neon-pink` (≈ #FF2E7F), `--purple` (≈ #8B5CF6)
-- `--ibloov-blue`, `--ibloov-orange` (from logo, for accent moments)
-- `--gradient-love` = pink→purple, `--gradient-mint-glow`, `--glass-bg`, `--glass-border`, `--shadow-glow-pink`, `--shadow-glow-mint`
-- Register all as Tailwind utilities via `@theme inline`.
+### 2. New component `LocationSearch.tsx`
+- Controlled input with debounced autocomplete suggestions list.
+- Emits `{ city?, region?, country? } | null` to parent.
+- Handles loading + error states (e.g. missing key → falls back to plain text input).
 
-Typography: bold display font for headline (Space Grotesk or similar Gen-Z geometric), Inter for body.
+### 3. `WallOfLove.tsx`
+- Remove `categoryFilter` state, category chip row, and `scope` (local/regional/global) toggle + its UI.
+- Add `locationFilter` and `timeFilter` state, persisted to URL search params (`wallLocation`, `wallTime`) alongside existing `wallFilter`.
+- Filtering pipeline: `venues → byLocation → byTime → sortBy(filter) → top 10`.
+- Header copy adapts to location ("Trending in {city}" / "worldwide").
+- Each card shows category as a subtle badge.
 
-## Tech
+### 4. `src/routes/index.tsx`
+- Extend `validateSearch` with `wallLocation` (string) and `wallTime` (`today|week|month|all`).
+- Pass through to `WallOfLove`.
 
-- framer-motion (install) for modal slide-ins, heart fills, floating-hearts success, leaderboard stagger.
-- lucide-react (already available) for Heart, Search, MapPin, Lock, Sparkles icons.
-- All mock data in-memory; no Supabase / no Cloud needed.
-- Mobile-first; current viewport is 390px so I'll design for that first then scale up.
-- SEO: route `head()` with title "iBloov Love Letters — Send love, not hate 💌", description, og tags.
+### 5. `src/lib/love-letters/mockVenues.ts`
+- Expand to ~25 venues across diverse categories (cafe, speakeasy, ramen bar, jazz club, beach club, gallery, bakery, wine bar, izakaya, brewery, tea house, etc.) and varied cities/countries.
+- Add `createdAt` timestamps spread across today/this week/this month/older to make the time filter meaningful.
 
-## Out of scope (call out if you want them)
-
-- Real Google Places autocomplete (mocked)
-- Real Google/Apple OAuth (mocked toggle)
-- Persisting letters anywhere (no DB)
-- Multi-page routing (everything on `/`)
+## Out of scope
+- No server route; autocomplete runs in the browser via the Maps JS API browser key.
+- No changes to Saved page, Write Letter flow, or word counter.
