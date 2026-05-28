@@ -14,14 +14,14 @@ export function LetterEditor({ value, onChange }: Props) {
 
   return (
     <div>
-      <p className="mb-2 text-sm font-medium text-foreground/80">
+      <p className="mb-1.5 text-sm font-medium text-foreground/80 sm:mb-2">
         Your Love Letter
       </p>
-      <div className="relative overflow-hidden rounded-2xl border border-mint/30 bg-gradient-to-br from-mint/5 via-purple/5 to-neon-pink/5 p-4 shadow-glow-mint">
-        <div className="pointer-events-none absolute right-3 top-3 text-2xl opacity-30">
+      <div className="relative overflow-hidden rounded-xl border border-mint/30 bg-gradient-to-br from-mint/5 via-purple/5 to-neon-pink/5 p-3 shadow-glow-mint sm:rounded-2xl sm:p-4">
+        <div className="pointer-events-none absolute right-2 top-2 text-xl opacity-30 sm:right-3 sm:top-3 sm:text-2xl">
           💌
         </div>
-        <p className="font-display text-base leading-relaxed text-foreground/90 sm:text-lg">
+        <p className="font-display text-sm leading-relaxed text-foreground/90 sm:text-base sm:leading-relaxed">
           <span className="font-semibold text-mint">{PREFIX}</span>{" "}
           <textarea
             value={value}
@@ -30,12 +30,12 @@ export function LetterEditor({ value, onChange }: Props) {
               onChange(next);
             }}
             placeholder="...the rosemary fries hit different, and the staff remembers my name."
-            rows={4}
+            rows={3}
             className="inline-block w-full resize-none bg-transparent align-top text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
           />
         </p>
       </div>
-      <div className="mt-2 flex items-center justify-between text-xs">
+      <div className="mt-1.5 flex items-center justify-between text-[11px] sm:mt-2 sm:text-xs">
         <span className="text-muted-foreground">
           Keep it short & sweet — 100 words max
         </span>
@@ -52,3 +52,4 @@ export function LetterEditor({ value, onChange }: Props) {
     </div>
   );
 }
+

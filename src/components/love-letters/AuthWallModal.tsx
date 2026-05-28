@@ -24,38 +24,38 @@ export function AuthWallModal({ open, onClose, onAuthed }: Props) {
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 260, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
-            className="glass relative w-full max-w-md rounded-t-3xl p-6 shadow-glow-pink sm:rounded-3xl sm:p-8"
+            className="glass relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl p-5 shadow-glow-pink sm:rounded-3xl sm:p-8"
           >
             <button
               onClick={onClose}
               aria-label="Close"
-              className="absolute right-3 top-3 rounded-full p-2 text-foreground/70 hover:bg-white/10"
+              className="absolute right-2 top-2 rounded-full p-1.5 text-foreground/70 hover:bg-white/10 sm:right-3 sm:top-3 sm:p-2"
             >
               <X className="h-4 w-4" />
             </button>
 
             <div className="text-center">
-              <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-love text-2xl shadow-glow-pink">
+              <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl bg-gradient-love text-xl shadow-glow-pink sm:mb-4 sm:h-14 sm:w-14 sm:rounded-2xl sm:text-2xl">
                 💌
               </div>
-              <h3 className="font-display text-2xl font-bold leading-tight">
+              <h3 className="font-display text-xl font-bold leading-tight sm:text-2xl">
                 Sign up to iBloov to send your letter
               </h3>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-1.5 text-xs text-muted-foreground sm:mt-2 sm:text-sm">
                 Continue with Google or Apple to deliver your Love Letter.
               </p>
             </div>
 
-            <div className="mt-6 space-y-3">
+            <div className="mt-5 space-y-2.5 sm:mt-6 sm:space-y-3">
               <button
                 onClick={onAuthed}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-black/5"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-black/5 sm:gap-3 sm:rounded-2xl sm:py-3"
               >
                 <GoogleIcon /> Continue with Google
               </button>
               <button
                 onClick={onAuthed}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white transition hover:brightness-110 sm:gap-3 sm:rounded-2xl sm:py-3"
               >
                 <AppleIcon /> Continue with Apple
               </button>
@@ -67,6 +67,7 @@ export function AuthWallModal({ open, onClose, onAuthed }: Props) {
     </AnimatePresence>
   );
 }
+
 
 function GoogleIcon() {
   return (
