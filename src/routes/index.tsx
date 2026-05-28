@@ -1,12 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Navbar } from "@/components/love-letters/Navbar";
 import { Hero } from "@/components/love-letters/Hero";
 import { PlaceFoundCard } from "@/components/love-letters/PlaceFoundCard";
 import { WriteLetterModal } from "@/components/love-letters/WriteLetterModal";
 import { AuthWallModal } from "@/components/love-letters/AuthWallModal";
-import { SuccessOverlay } from "@/components/love-letters/SuccessOverlay";
-import { WallOfLove } from "@/components/love-letters/WallOfLove";
+import { WallOfLove, type WallFilter } from "@/components/love-letters/WallOfLove";
 import { OwnerTeaserBanner } from "@/components/love-letters/OwnerTeaserBanner";
 import { Footer } from "@/components/love-letters/Footer";
 import {
@@ -14,7 +14,15 @@ import {
   type Venue,
 } from "@/lib/love-letters/mockVenues";
 
+const VALID_FILTERS: WallFilter[] = ["top", "most", "new"];
+
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>): { wallFilter: WallFilter } => {
+    const f = search.wallFilter;
+    return {
+      wallFilter: VALID_FILTERS.includes(f as WallFilter) ? (f as WallFilter) : "top",
+    };
+  },
   head: () => ({
     meta: [
       { title: "iBloov Love Letters — Send love, not hate 💌" },
@@ -36,11 +44,13 @@ export const Route = createFileRoute("/")({
 });
 
 function LoveLettersPage() {
+  const { wallFilter } = Route.useSearch();
+  const navigate = useNavigate();
+
   const [isSearching, setIsSearching] = useState(false);
   const [venue, setVenue] = useState<Venue | null>(null);
   const [writeOpen, setWriteOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const [successOpen, setSuccessOpen] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
 
   const handleSearch = (name: string, city: string) => {
@@ -52,19 +62,28 @@ function LoveLettersPage() {
     }, 900);
   };
 
+  const completeSend = () => {
+    toast.success("Love Letter sent 💌", {
+      description: venue
+        ? `Your note is on its way to ${venue.name}.`
+        : "Your note is on its way.",
+    });
+    navigate({ to: "/saved", search: { tab: "unlocked" } });
+  };
+
   const handleSubmit = (_rating: number, _message: string) => {
     setWriteOpen(false);
     if (!isAuthed) {
       window.setTimeout(() => setAuthOpen(true), 150);
     } else {
-      window.setTimeout(() => setSuccessOpen(true), 150);
+      window.setTimeout(completeSend, 150);
     }
   };
 
   const handleAuthed = () => {
     setIsAuthed(true);
     setAuthOpen(false);
-    window.setTimeout(() => setSuccessOpen(true), 200);
+    window.setTimeout(completeSend, 200);
   };
 
   return (
@@ -80,7 +99,12 @@ function LoveLettersPage() {
           </div>
         )}
 
-        <WallOfLove />
+        <WallOfLove
+          filter={wallFilter}
+          onFilterChange={(f) =>
+            navigate({ to: "/", search: { wallFilter: f }, replace: true })
+          }
+        />
         <OwnerTeaserBanner />
       </main>
 
@@ -97,7 +121,6 @@ function LoveLettersPage() {
         onClose={() => setAuthOpen(false)}
         onAuthed={handleAuthed}
       />
-      <SuccessOverlay open={successOpen} onClose={() => setSuccessOpen(false)} />
     </div>
   );
 }
