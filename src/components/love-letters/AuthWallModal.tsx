@@ -39,34 +39,25 @@ export function AuthWallModal({ open, onClose, onAuthed }: Props) {
                 💌
               </div>
               <h3 className="font-display text-2xl font-bold leading-tight">
-                Claim your AuraLink ID
-                <br />
-                to deliver this letter!
+                Sign in to send your letter
               </h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                One quick sign-in keeps the love flowing — and unlocks your
-                future Letters too.
-              </p>
             </div>
 
             <div className="mt-6 space-y-3">
               <button
                 onClick={onAuthed}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black transition hover:brightness-95"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-black transition hover:bg-black/5"
               >
                 <GoogleIcon /> Continue with Google
               </button>
               <button
                 onClick={onAuthed}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-black px-4 py-3 text-sm font-semibold text-white ring-1 ring-white/15 transition hover:bg-white/5"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl bg-black px-4 py-3 text-sm font-semibold text-white transition hover:brightness-110"
               >
                 <AppleIcon /> Continue with Apple
               </button>
             </div>
 
-            <p className="mt-4 text-center text-[11px] text-muted-foreground/70">
-              By continuing, you agree to spread love, not hate.
-            </p>
           </motion.div>
         </motion.div>
       )}
