@@ -1,0 +1,73 @@
+import { motion } from "framer-motion";
+import { Heart, TrendingUp } from "lucide-react";
+import { trendingVenues } from "@/lib/love-letters/mockVenues";
+
+export function WallOfLove() {
+  return (
+    <section className="px-4 py-16">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-8 flex items-end justify-between gap-4">
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-mint">
+              <TrendingUp className="h-3.5 w-3.5" /> Wall of Love
+            </div>
+            <h2 className="font-display text-3xl font-bold sm:text-4xl">
+              Top Trending Places <span className="text-gradient-love">This Week</span>
+            </h2>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {trendingVenues.map((v, i) => (
+            <motion.article
+              key={v.id}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.5, delay: i * 0.06 }}
+              className="glass group overflow-hidden rounded-3xl transition hover:-translate-y-1 hover:shadow-glow-pink"
+            >
+              <div className="relative h-36 overflow-hidden">
+                <img
+                  src={`https://source.unsplash.com/featured/600x400/?${encodeURIComponent(
+                    v.imageQuery,
+                  )}`}
+                  alt={v.name}
+                  className="h-full w-full object-cover transition group-hover:scale-110"
+                  onError={(e) =>
+                    ((e.currentTarget as HTMLImageElement).style.display = "none")
+                  }
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+                <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-xs font-bold text-white backdrop-blur">
+                  #{i + 1}
+                </div>
+                {!v.claimed && (
+                  <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-gradient-love px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
+                    Unclaimed
+                  </div>
+                )}
+              </div>
+              <div className="p-4">
+                <h3 className="font-display text-lg font-bold leading-tight">
+                  {v.name}
+                </h3>
+                <p className="text-xs text-muted-foreground">{v.city}</p>
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1 text-sm font-semibold">
+                    <Heart className="h-3.5 w-3.5 fill-neon-pink text-neon-pink" />
+                    {v.rating.toFixed(1)}/10
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    <span className="font-semibold text-mint">{v.loveCount}</span>{" "}
+                    Love Letters
+                  </span>
+                </div>
+              </div>
+            </motion.article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
