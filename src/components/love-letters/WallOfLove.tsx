@@ -5,18 +5,27 @@ import { trendingVenues, type TrendingVenue } from "@/lib/love-letters/mockVenue
 import { EmptyState } from "./EmptyState";
 import { WallSkeleton } from "./WallSkeleton";
 
-type Filter = "top" | "most" | "new";
+export type WallFilter = "top" | "most" | "new";
 
-const FILTERS: { id: Filter; label: string }[] = [
+const FILTERS: { id: WallFilter; label: string }[] = [
   { id: "top", label: "Top rated" },
   { id: "most", label: "Most letters" },
   { id: "new", label: "New this week" },
 ];
 
-export function WallOfLove() {
+type Props = {
+  filter?: WallFilter;
+  onFilterChange?: (f: WallFilter) => void;
+};
+
+export function WallOfLove({ filter: filterProp, onFilterChange }: Props = {}) {
   const [isLoading, setIsLoading] = useState(true);
   const [venues, setVenues] = useState<TrendingVenue[]>([]);
-  const [filter, setFilter] = useState<Filter>("top");
+  const [filterState, setFilterState] = useState<WallFilter>("top");
+  const filter = filterProp ?? filterState;
+  const setFilter = (f: WallFilter) => {
+    onFilterChange ? onFilterChange(f) : setFilterState(f);
+  };
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
