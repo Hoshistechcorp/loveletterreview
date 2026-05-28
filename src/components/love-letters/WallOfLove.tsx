@@ -1,17 +1,46 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Heart, MapPin, TrendingUp } from "lucide-react";
-import { trendingVenues, type TrendingVenue } from "@/lib/love-letters/mockVenues";
+import { ChevronDown, Globe2, Heart, MapPin, TrendingUp } from "lucide-react";
+import {
+  trendingVenues,
+  type TrendingVenue,
+  type VenueCategory,
+} from "@/lib/love-letters/mockVenues";
 import { EmptyState } from "./EmptyState";
 import { WallSkeleton } from "./WallSkeleton";
 
 export type WallFilter = "top" | "most" | "new";
+export type WallScope = "local" | "regional" | "global";
 
 const FILTERS: { id: WallFilter; label: string }[] = [
   { id: "top", label: "Top rated" },
   { id: "most", label: "Most letters" },
   { id: "new", label: "New this week" },
 ];
+
+const SCOPES: { id: WallScope; label: string }[] = [
+  { id: "local", label: "Local" },
+  { id: "regional", label: "Regional" },
+  { id: "global", label: "Global" },
+];
+
+const CATEGORIES: { id: VenueCategory; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "cafe", label: "Cafés" },
+  { id: "restaurant", label: "Restaurants" },
+  { id: "bar", label: "Bars" },
+  { id: "rooftop", label: "Rooftops" },
+  { id: "lounge", label: "Lounges" },
+];
+
+// Mock "you" — in a real app this comes from geolocation / profile.
+const USER_LOCATION = {
+  city: "Brooklyn, NY",
+  country: "United States",
+  region: "North America",
+};
+
+const TOP_N = 10;
 
 type Props = {
   filter?: WallFilter;
@@ -26,6 +55,8 @@ export function WallOfLove({ filter: filterProp, onFilterChange }: Props = {}) {
   const setFilter = (f: WallFilter) => {
     onFilterChange ? onFilterChange(f) : setFilterState(f);
   };
+  const [scope, setScope] = useState<WallScope>("global");
+  const [category, setCategory] = useState<VenueCategory>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,27 +68,93 @@ export function WallOfLove({ filter: filterProp, onFilterChange }: Props = {}) {
   }, []);
 
   const sorted = useMemo(() => {
-    const copy = [...venues];
-    if (filter === "top") return copy.sort((a, b) => b.rating - a.rating);
-    if (filter === "most") return copy.sort((a, b) => b.loveCount - a.loveCount);
-    return copy.filter((v) => v.daysAgo <= 7).sort((a, b) => a.daysAgo - b.daysAgo);
-  }, [venues, filter]);
+    let copy = [...venues];
+
+    // Scope: local (same city) → regional (same continent) → global (all)
+    if (scope === "local") {
+      copy = copy.filter((v) => v.city === USER_LOCATION.city);
+    } else if (scope === "regional") {
+      copy = copy.filter((v) => v.region === USER_LOCATION.region);
+    }
+
+    if (category !== "all") {
+      copy = copy.filter((v) => v.category === category);
+    }
+
+    if (filter === "top") copy.sort((a, b) => b.rating - a.rating);
+    else if (filter === "most") copy.sort((a, b) => b.loveCount - a.loveCount);
+    else copy = copy.filter((v) => v.daysAgo <= 7).sort((a, b) => a.daysAgo - b.daysAgo);
+
+    return copy.slice(0, TOP_N);
+  }, [venues, filter, scope, category]);
 
   const hasLetters = sorted.length > 0;
+
+  const scopeLabel =
+    scope === "local"
+      ? USER_LOCATION.city
+      : scope === "regional"
+      ? USER_LOCATION.region
+      : "the world";
 
   return (
     <section className="px-4 py-12 sm:py-16">
       <div className="mx-auto max-w-5xl">
         <div className="mb-5 sm:mb-7">
           <p className="text-xs font-semibold uppercase tracking-widest text-mint">
-            <TrendingUp className="mr-1 inline h-3.5 w-3.5" /> Wall of Love
+            <TrendingUp className="mr-1 inline h-3.5 w-3.5" /> Wall of Love · Top {TOP_N}
           </p>
           <h2 className="mt-2 font-display text-2xl font-bold sm:text-4xl">
-            Trending <span className="text-gradient-love">this week</span>
+            Trending across{" "}
+            <span className="text-gradient-love">{scopeLabel}</span>
           </h2>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground sm:text-sm">
+            <Globe2 className="h-3.5 w-3.5 text-mint" />
+            Rankings update by scope, category, and time.
+          </p>
 
-          {/* Filter chips */}
-          <div className="mt-4 flex flex-wrap gap-2">
+          {/* Scope (Local / Regional / Global) */}
+          <div className="mt-4 inline-flex rounded-full border border-foreground/15 bg-foreground/[0.03] p-1">
+            {SCOPES.map((s) => {
+              const active = scope === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setScope(s.id)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
+                    active
+                      ? "bg-gradient-mint text-white shadow-glow-mint"
+                      : "text-foreground/60 hover:text-foreground"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Category chips */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {CATEGORIES.map((c) => {
+              const active = category === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setCategory(c.id)}
+                  className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition sm:text-xs ${
+                    active
+                      ? "border-mint/60 bg-mint/10 text-mint"
+                      : "border-foreground/10 bg-foreground/[0.02] text-foreground/60 hover:border-mint/30 hover:text-foreground"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Sort filter */}
+          <div className="mt-3 flex flex-wrap gap-2">
             {FILTERS.map((f) => {
               const active = filter === f.id;
               return (
@@ -105,6 +202,8 @@ export function WallOfLove({ filter: filterProp, onFilterChange }: Props = {}) {
                             ? "bg-gradient-love shadow-glow-pink"
                             : i === 1
                             ? "bg-gradient-mint"
+                            : i === 2
+                            ? "bg-foreground/15"
                             : "bg-foreground/5"
                         } transition group-hover:scale-110`}
                       />
@@ -124,9 +223,14 @@ export function WallOfLove({ filter: filterProp, onFilterChange }: Props = {}) {
                       </h3>
                       <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-muted-foreground sm:text-xs">
                         <MapPin className="h-2.5 w-2.5 shrink-0 text-mint sm:h-3 sm:w-3" />
-                        {v.city}
+                        {v.city} · {v.country}
                       </p>
                     </div>
+
+                    {/* Category badge */}
+                    <span className="hidden shrink-0 rounded-full border border-foreground/10 bg-foreground/[0.03] px-2 py-0.5 text-[10px] uppercase tracking-wider text-foreground/60 sm:inline-block">
+                      {v.category}
+                    </span>
 
                     {/* Rating */}
                     <div className="flex shrink-0 items-center gap-1 text-xs font-semibold sm:text-sm">
@@ -182,8 +286,8 @@ export function WallOfLove({ filter: filterProp, onFilterChange }: Props = {}) {
         ) : (
           <div className="glass rounded-3xl">
             <EmptyState
-              title="No Love Letters yet"
-              subtitle="Be the first to spread love. Find a place and send a Love Letter today."
+              title={`No Love Letters in ${scopeLabel} yet`}
+              subtitle="Try a wider scope or different category — or be the first to spread the love."
               ctaLabel="Send a Love Letter"
               ctaHref="/"
             />
