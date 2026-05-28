@@ -24,7 +24,7 @@ export function HeartRating({ value, onChange }: Props) {
 
   return (
     <div className="relative">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-1.5 flex items-center justify-between sm:mb-2">
         <p className="text-sm font-medium text-foreground/80">
           How much do you love it?
         </p>
@@ -32,7 +32,7 @@ export function HeartRating({ value, onChange }: Props) {
           {value}/{TOTAL} 💖
         </span>
       </div>
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
         {Array.from({ length: TOTAL }).map((_, i) => {
           const n = i + 1;
           const locked = n < MIN;
@@ -45,12 +45,12 @@ export function HeartRating({ value, onChange }: Props) {
               onMouseEnter={() => locked && setTooltipFor(n)}
               onMouseLeave={() => locked && setTooltipFor(null)}
               aria-label={locked ? `${n} hearts (locked)` : `${n} hearts`}
-              className="group relative grid h-9 w-9 place-items-center rounded-lg transition hover:scale-110 sm:h-10 sm:w-10"
+              className="group relative grid h-8 w-8 place-items-center rounded-lg transition hover:scale-110 sm:h-9 sm:w-9"
             >
               {locked ? (
                 <div className="relative">
-                  <Heart className="h-7 w-7 text-black/15" />
-                  <Lock className="absolute inset-0 m-auto h-3 w-3 text-black/40" />
+                  <Heart className="h-6 w-6 text-black/15 sm:h-7 sm:w-7" />
+                  <Lock className="absolute inset-0 m-auto h-2.5 w-2.5 text-black/40 sm:h-3 sm:w-3" />
                 </div>
               ) : (
                 <motion.div
@@ -60,8 +60,8 @@ export function HeartRating({ value, onChange }: Props) {
                   <Heart
                     className={
                       filled
-                        ? "h-7 w-7 stroke-[1.5]"
-                        : "h-7 w-7 text-black/25 hover:text-neon-pink"
+                        ? "h-6 w-6 stroke-[1.5] sm:h-7 sm:w-7"
+                        : "h-6 w-6 text-black/25 hover:text-neon-pink sm:h-7 sm:w-7"
                     }
                     style={
 
@@ -97,7 +97,7 @@ export function HeartRating({ value, onChange }: Props) {
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 4 }}
-            className="mt-3 rounded-xl border border-neon-pink/30 bg-neon-pink/10 px-3 py-2 text-xs text-foreground"
+            className="mt-2 rounded-lg border border-neon-pink/30 bg-neon-pink/10 px-2.5 py-1.5 text-[11px] text-foreground sm:mt-3 sm:rounded-xl sm:px-3 sm:py-2 sm:text-xs"
           >
             At iBloov, we only spread love. 4 hearts is our minimum! ❤️
           </motion.div>
@@ -106,3 +106,4 @@ export function HeartRating({ value, onChange }: Props) {
     </div>
   );
 }
+
