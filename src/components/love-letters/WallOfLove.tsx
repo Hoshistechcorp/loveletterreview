@@ -65,6 +65,24 @@ export function WallOfLove({
     return () => window.clearTimeout(t);
   }, []);
 
+  const locationOptions = useMemo(() => {
+    const set = new Set<string>();
+    venues.forEach((v) => {
+      if (v.city) set.add(v.city);
+      if (v.country) set.add(v.country);
+      if (v.region) set.add(v.region);
+    });
+    return Array.from(set).sort();
+  }, [venues]);
+
+  const suggestions = useMemo(() => {
+    const q = location.trim().toLowerCase();
+    const base = q
+      ? locationOptions.filter((o) => o.toLowerCase().includes(q) && o.toLowerCase() !== q)
+      : locationOptions;
+    return base.slice(0, 8);
+  }, [location, locationOptions]);
+
   const sorted = useMemo(() => {
     let copy = [...venues];
 
