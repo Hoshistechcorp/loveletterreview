@@ -7,10 +7,12 @@ import { PlaceFoundCard } from "@/components/love-letters/PlaceFoundCard";
 import { WriteLetterModal } from "@/components/love-letters/WriteLetterModal";
 import { AuthWallModal } from "@/components/love-letters/AuthWallModal";
 import { WallOfLove, type WallFilter, type WallTime } from "@/components/love-letters/WallOfLove";
+import { LettersPreviewModal } from "@/components/love-letters/LettersPreviewModal";
 import { OwnerTeaserBanner } from "@/components/love-letters/OwnerTeaserBanner";
 import { Footer } from "@/components/love-letters/Footer";
 import {
   mockSearchVenue,
+  type TrendingVenue,
   type Venue,
 } from "@/lib/love-letters/mockVenues";
 
