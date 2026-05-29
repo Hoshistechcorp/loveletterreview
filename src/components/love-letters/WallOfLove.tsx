@@ -47,6 +47,8 @@ export function WallOfLove({
   const [timeState, setTimeState] = useState<WallTime>("all");
   const [timeOpen, setTimeOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [locationFocused, setLocationFocused] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(-1);
 
   const filter = filterProp ?? filterState;
   const setFilter = (f: WallFilter) => (onFilterChange ? onFilterChange(f) : setFilterState(f));
