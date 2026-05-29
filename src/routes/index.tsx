@@ -141,19 +141,7 @@ function LoveLettersPage() {
             })
           }
           onWriteForVenue={(v) => {
-            setVenue({
-              id: v.id,
-              name: v.name,
-              address: v.address,
-              city: v.city,
-              website: v.website,
-              imageQuery: v.imageQuery,
-              claimed: v.claimed,
-            });
-            setWriteOpen(true);
-            if (typeof window !== "undefined") {
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }
+            setPreviewVenue(v);
           }}
         />
 
