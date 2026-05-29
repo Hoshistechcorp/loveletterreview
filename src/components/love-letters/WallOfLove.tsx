@@ -137,7 +137,29 @@ export function WallOfLove({
               <input
                 type="text"
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={(e) => {
+                  setLocation(e.target.value);
+                  setHighlightIdx(-1);
+                  setLocationFocused(true);
+                }}
+                onFocus={() => setLocationFocused(true)}
+                onBlur={() => window.setTimeout(() => setLocationFocused(false), 120)}
+                onKeyDown={(e) => {
+                  if (!locationFocused || suggestions.length === 0) return;
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setHighlightIdx((i) => (i + 1) % suggestions.length);
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setHighlightIdx((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+                  } else if (e.key === "Enter" && highlightIdx >= 0) {
+                    e.preventDefault();
+                    setLocation(suggestions[highlightIdx]);
+                    setLocationFocused(false);
+                  } else if (e.key === "Escape") {
+                    setLocationFocused(false);
+                  }
+                }}
                 placeholder="Search city, state, or country…"
                 className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-2.5 text-sm text-foreground placeholder:text-foreground/40 outline-none transition focus:border-mint/60 focus:bg-foreground/[0.05] focus:shadow-glow-mint"
               />
@@ -150,7 +172,42 @@ export function WallOfLove({
                   <X className="h-4 w-4" />
                 </button>
               )}
+
+              <AnimatePresence>
+                {locationFocused && suggestions.length > 0 && (
+                  <motion.ul
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute left-0 right-0 z-30 mt-2 max-h-72 overflow-auto rounded-2xl border border-foreground/10 bg-background/95 py-1 shadow-xl backdrop-blur"
+                  >
+                    {suggestions.map((s, idx) => (
+                      <li key={s}>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setLocation(s);
+                            setLocationFocused(false);
+                          }}
+                          onMouseEnter={() => setHighlightIdx(idx)}
+                          className={`flex w-full items-center gap-2 px-4 py-2 text-left text-sm transition ${
+                            idx === highlightIdx
+                              ? "bg-mint/10 text-foreground"
+                              : "text-foreground/80 hover:bg-foreground/5"
+                          }`}
+                        >
+                          <MapPin className="h-3.5 w-3.5 text-mint" />
+                          {s}
+                        </button>
+                      </li>
+                    ))}
+                  </motion.ul>
+                )}
+              </AnimatePresence>
             </div>
+
 
             <div className="relative">
               <button
