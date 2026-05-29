@@ -21,6 +21,15 @@ export function PlaceFoundCard({ venue, onWrite, onClose }: Props) {
       className="mx-auto w-full max-w-3xl px-3 sm:px-4"
     >
       <div className="glass relative overflow-hidden rounded-2xl shadow-glow-purple sm:rounded-3xl">
+        {onClose && (
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute right-2 top-2 z-10 rounded-full bg-black/50 p-1.5 text-white backdrop-blur transition hover:bg-black/70 sm:right-3 sm:top-3 sm:p-2"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
         <div className="relative h-36 w-full overflow-hidden sm:h-56">
           <img
             src={imageUrl}
