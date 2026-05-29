@@ -63,6 +63,7 @@ function LoveLettersPage() {
   const [writeOpen, setWriteOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
+  const [previewVenue, setPreviewVenue] = useState<TrendingVenue | null>(null);
 
   const handleSearch = (name: string, city: string) => {
     setIsSearching(true);
