@@ -162,6 +162,28 @@ function LoveLettersPage() {
         onClose={() => setAuthOpen(false)}
         onAuthed={handleAuthed}
       />
+      <LettersPreviewModal
+        open={!!previewVenue}
+        venue={previewVenue}
+        onClose={() => setPreviewVenue(null)}
+        onWrite={() => {
+          if (!previewVenue) return;
+          setVenue({
+            id: previewVenue.id,
+            name: previewVenue.name,
+            address: previewVenue.address,
+            city: previewVenue.city,
+            website: previewVenue.website,
+            imageQuery: previewVenue.imageQuery,
+            claimed: previewVenue.claimed,
+          });
+          setPreviewVenue(null);
+          setWriteOpen(true);
+          if (typeof window !== "undefined") {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }
+        }}
+      />
     </div>
   );
 }
