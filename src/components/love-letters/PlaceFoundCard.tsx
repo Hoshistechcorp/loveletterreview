@@ -1,13 +1,14 @@
 import { motion } from "framer-motion";
-import { ExternalLink, Lock, MapPin, Sparkles } from "lucide-react";
+import { ExternalLink, Lock, MapPin, Sparkles, X } from "lucide-react";
 import type { Venue } from "@/lib/love-letters/mockVenues";
 
 type Props = {
   venue: Venue;
   onWrite: () => void;
+  onClose?: () => void;
 };
 
-export function PlaceFoundCard({ venue, onWrite }: Props) {
+export function PlaceFoundCard({ venue, onWrite, onClose }: Props) {
   const imageUrl = `https://source.unsplash.com/featured/800x600/?${encodeURIComponent(
     venue.imageQuery + ",restaurant",
   )}`;
