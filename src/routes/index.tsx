@@ -7,12 +7,10 @@ import { PlaceFoundCard } from "@/components/love-letters/PlaceFoundCard";
 import { WriteLetterModal } from "@/components/love-letters/WriteLetterModal";
 import { AuthWallModal } from "@/components/love-letters/AuthWallModal";
 import { WallOfLove, type WallFilter, type WallTime } from "@/components/love-letters/WallOfLove";
-import { LettersPreviewModal } from "@/components/love-letters/LettersPreviewModal";
 import { OwnerTeaserBanner } from "@/components/love-letters/OwnerTeaserBanner";
 import { Footer } from "@/components/love-letters/Footer";
 import {
   mockSearchVenue,
-  type TrendingVenue,
   type Venue,
 } from "@/lib/love-letters/mockVenues";
 
@@ -63,7 +61,6 @@ function LoveLettersPage() {
   const [writeOpen, setWriteOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
-  const [previewVenue, setPreviewVenue] = useState<TrendingVenue | null>(null);
 
   const handleSearch = (name: string, city: string) => {
     setIsSearching(true);
@@ -107,11 +104,7 @@ function LoveLettersPage() {
 
         {venue && (
           <div className="pb-12">
-            <PlaceFoundCard
-              venue={venue}
-              onWrite={() => setWriteOpen(true)}
-              onClose={() => setVenue(null)}
-            />
+            <PlaceFoundCard venue={venue} onWrite={() => setWriteOpen(true)} />
           </div>
         )}
 
@@ -140,9 +133,6 @@ function LoveLettersPage() {
               replace: true,
             })
           }
-          onWriteForVenue={(v) => {
-            setPreviewVenue(v);
-          }}
         />
 
 
@@ -161,28 +151,6 @@ function LoveLettersPage() {
         open={authOpen}
         onClose={() => setAuthOpen(false)}
         onAuthed={handleAuthed}
-      />
-      <LettersPreviewModal
-        open={!!previewVenue}
-        venue={previewVenue}
-        onClose={() => setPreviewVenue(null)}
-        onWrite={() => {
-          if (!previewVenue) return;
-          setVenue({
-            id: previewVenue.id,
-            name: previewVenue.name,
-            address: previewVenue.address,
-            city: previewVenue.city,
-            website: previewVenue.website,
-            imageQuery: previewVenue.imageQuery,
-            claimed: previewVenue.claimed,
-          });
-          setPreviewVenue(null);
-          setWriteOpen(true);
-          if (typeof window !== "undefined") {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }
-        }}
       />
     </div>
   );

@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { Heart, MapPin, Search } from "lucide-react";
-import { useMemo, useRef, useState, useEffect, type FormEvent } from "react";
-import { trendingVenues } from "@/lib/love-letters/mockVenues";
+import { useState, type FormEvent } from "react";
 
 type Props = {
   onSearch: (name: string, city: string) => void;
@@ -11,42 +10,11 @@ type Props = {
 export function Hero({ onSearch, isSearching }: Props) {
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
-  const [showSuggest, setShowSuggest] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  const suggestions = useMemo(() => {
-    const q = name.trim().toLowerCase();
-    if (q.length < 1) return [];
-    return trendingVenues
-      .filter(
-        (v) =>
-          v.name.toLowerCase().includes(q) ||
-          v.category.toLowerCase().includes(q) ||
-          v.city.toLowerCase().includes(q),
-      )
-      .slice(0, 6);
-  }, [name]);
-
-  useEffect(() => {
-    const onDoc = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setShowSuggest(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, []);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    setShowSuggest(false);
     onSearch(name, city);
-  };
-
-  const pick = (vName: string, vCity: string) => {
-    setName(vName);
-    setCity(vCity);
-    setShowSuggest(false);
-    onSearch(vName, vCity);
   };
 
   return (
@@ -89,47 +57,14 @@ export function Hero({ onSearch, isSearching }: Props) {
           className="mx-auto mt-6 w-full max-w-2xl sm:mt-8"
         >
           <div className="relative flex flex-col gap-1.5 rounded-2xl border border-black/10 bg-white p-1.5 shadow-glow-mint sm:flex-row sm:items-center sm:gap-0 sm:rounded-3xl sm:p-1.5">
-            <div ref={wrapRef} className="relative flex flex-1 items-center gap-2 rounded-xl px-2.5 py-2 sm:rounded-2xl sm:px-3 sm:py-3">
+            <div className="flex flex-1 items-center gap-2 rounded-xl px-2.5 py-2 sm:rounded-2xl sm:px-3 sm:py-3">
               <Search className="h-3.5 w-3.5 shrink-0 text-mint sm:h-4 sm:w-4" />
               <input
                 value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setShowSuggest(true);
-                }}
-                onFocus={() => setShowSuggest(true)}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="Place name"
                 className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none sm:text-base"
               />
-              {showSuggest && suggestions.length > 0 && (
-                <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-black/10 bg-white text-left shadow-xl">
-                  <p className="border-b border-black/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Recommended
-                  </p>
-                  <ul className="max-h-72 overflow-y-auto">
-                    {suggestions.map((s) => (
-                      <li key={s.id}>
-                        <button
-                          type="button"
-                          onClick={() => pick(s.name, s.city)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-foreground transition hover:bg-mint/10"
-                        >
-                          <Heart className="h-3 w-3 shrink-0 fill-neon-pink text-neon-pink" />
-                          <span className="flex-1 truncate">
-                            <span className="font-semibold">{s.name}</span>
-                            <span className="ml-1.5 text-xs text-muted-foreground">
-                              · {s.city}
-                            </span>
-                          </span>
-                          <span className="hidden text-[10px] uppercase tracking-wider text-muted-foreground sm:inline">
-                            {s.category}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
             <div className="hidden h-8 w-px bg-black/10 sm:block" />
             <div className="flex flex-1 items-center gap-2 rounded-xl px-2.5 py-2 sm:rounded-2xl sm:px-3 sm:py-3">
@@ -160,3 +95,4 @@ export function Hero({ onSearch, isSearching }: Props) {
     </section>
   );
 }
+
