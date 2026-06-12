@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SavedRouteImport } from './routes/saved'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ClaimVenueIdRouteImport } from './routes/claim.$venueId'
 
 const SavedRoute = SavedRouteImport.update({
   id: '/saved',
@@ -22,31 +23,40 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClaimVenueIdRoute = ClaimVenueIdRouteImport.update({
+  id: '/claim/$venueId',
+  path: '/claim/$venueId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/saved': typeof SavedRoute
+  '/claim/$venueId': typeof ClaimVenueIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/saved': typeof SavedRoute
+  '/claim/$venueId': typeof ClaimVenueIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/saved': typeof SavedRoute
+  '/claim/$venueId': typeof ClaimVenueIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/saved'
+  fullPaths: '/' | '/saved' | '/claim/$venueId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/saved'
-  id: '__root__' | '/' | '/saved'
+  to: '/' | '/saved' | '/claim/$venueId'
+  id: '__root__' | '/' | '/saved' | '/claim/$venueId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SavedRoute: typeof SavedRoute
+  ClaimVenueIdRoute: typeof ClaimVenueIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,13 +75,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/claim/$venueId': {
+      id: '/claim/$venueId'
+      path: '/claim/$venueId'
+      fullPath: '/claim/$venueId'
+      preLoaderRoute: typeof ClaimVenueIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SavedRoute: SavedRoute,
+  ClaimVenueIdRoute: ClaimVenueIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
