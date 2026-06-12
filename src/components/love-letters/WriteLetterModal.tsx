@@ -85,11 +85,13 @@ export function WriteLetterModal({ open, venue, onClose, onSubmit }: Props) {
                       >
                         {over
                           ? `Trim ${words - MAX_WORDS} word${words - MAX_WORDS === 1 ? "" : "s"} to continue`
-                          : "Preview email →"}
+                          : "Preview letter →"}
                       </button>
                     );
                   })()}
                 </div>
+
+
 
               </>
             ) : (
@@ -133,12 +135,13 @@ function EmailPreview({
         </button>
         <div>
           <p className="text-[10px] uppercase tracking-widest text-mint sm:text-xs">
-            Email preview
+            Preview your Love Letter
           </p>
           <h3 className="font-display text-lg font-bold sm:text-xl">
-            What the owner will see
+            What the {venue.name} team will see when they claim their listing
           </h3>
         </div>
+
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-foreground/10 bg-white text-zinc-900 shadow-lg">
@@ -192,6 +195,14 @@ function EmailPreview({
           </p>
         </div>
       </div>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-foreground/60 sm:text-xs">
+        Your letter is posted publicly on the Wall of Love. The {venue.name} team
+        is notified only after they claim their venue on iBloov and opt in to
+        email — we never email a business that hasn&rsquo;t signed up.
+      </p>
+
+
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
         <button
