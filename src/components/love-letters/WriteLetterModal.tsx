@@ -85,11 +85,13 @@ export function WriteLetterModal({ open, venue, onClose, onSubmit }: Props) {
                       >
                         {over
                           ? `Trim ${words - MAX_WORDS} word${words - MAX_WORDS === 1 ? "" : "s"} to continue`
-                          : "Preview email →"}
+                          : "Preview letter →"}
                       </button>
                     );
                   })()}
                 </div>
+
+
 
               </>
             ) : (
