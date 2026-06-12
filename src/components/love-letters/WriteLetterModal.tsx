@@ -135,12 +135,13 @@ function EmailPreview({
         </button>
         <div>
           <p className="text-[10px] uppercase tracking-widest text-mint sm:text-xs">
-            Email preview
+            Preview your Love Letter
           </p>
           <h3 className="font-display text-lg font-bold sm:text-xl">
-            What the owner will see
+            What the {venue.name} team will see when they claim their listing
           </h3>
         </div>
+
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-foreground/10 bg-white text-zinc-900 shadow-lg">
