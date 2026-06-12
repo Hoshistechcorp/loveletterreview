@@ -196,6 +196,14 @@ function EmailPreview({
         </div>
       </div>
 
+      <p className="mt-3 text-[11px] leading-relaxed text-foreground/60 sm:text-xs">
+        Your letter is posted publicly on the Wall of Love. The {venue.name} team
+        is notified only after they claim their venue on iBloov and opt in to
+        email — we never email a business that hasn&rsquo;t signed up.
+      </p>
+
+
+
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
         <button
           onClick={onBack}
