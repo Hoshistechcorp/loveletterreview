@@ -1,61 +1,60 @@
-# Redesign Wall of Love expandable row
+## Goal
 
-Adopt the **Luminous gradient sheen** direction for the expanded panel on each Wall of Love item. Collapsed row stays exactly as it is today. Only one row open at a time (unchanged).
+Make iBloov legally and reputationally safe to send Love Letters to businesses, by removing any implication that we scrape or guess business emails. Every letter is **public** by default; venues only receive an email if **they themselves** registered a contact address (via venue claim).
 
-## What changes
+## Why this is safe
 
-In `src/components/love-letters/WallOfLove.tsx`, replace the existing expanded `<motion.div>` block (currently a simple horizontal row with excerpt + pill button) with the new design.
+The risk of "where did you get my email?" complaints (GDPR Art. 6/14, CAN-SPAM, CASL) comes from emailing addresses the recipient never gave us. We avoid that by sourcing emails through exactly two consent paths:
 
-### Expanded panel structure (vertical stack, centered)
+1. **Verified claim** — A venue owner proves ownership (Google Business OAuth, domain email verification, or in-place code) and enters a notification email themselves.
+2. **Self-published contact** (optional, phase 2) — Email pulled live from the venue's own Google Business Profile via the official API, with a "this came from your public Google listing — unsubscribe in one click" footer. We never scrape websites.
 
-```text
-┌─ Expanded panel ─────────────────────────────────┐
-│  (floating ❤ top-left, floating ❤ bottom-right)  │
-│                                                  │
-│         I LOVE THIS PLACE BECAUSE  (mint label)  │
-│                                                  │
-│       " The atmosphere here is truly             │
-│         unparalleled, from the way the           │
-│         light hits the vintage counters… "       │
-│                                                  │
-│         [ Read & Write more  → ]  (gradient CTA) │
-│                                                  │
-│         ─── Featured Letter ───                  │
-└──────────────────────────────────────────────────┘
-```
+Letters to unclaimed venues are **never emailed** — they sit publicly on the Wall of Love and act as a claim incentive ("you have 3 unread Love Letters — claim to read them").
 
-### Visual treatment
+## User-facing flow changes
 
-- Background: layered gradient sheen using existing tokens — base `bg-gradient-to-tr from-mint/[0.04] via-neon-pink/[0.06] to-transparent` + radial pink glow at 70% 20% via inline `radial-gradient` using `color-mix(in oklab, var(--neon-pink) 15%, transparent)`.
-- Decorative quote marks (`"` / `"`) flanking the excerpt at low opacity using `text-neon-pink/20`.
-- Two floating heart SVGs (lucide `Heart` filled) — one top-left rotated -12°, one bottom-right rotated 45°/scale 1.25 — at low opacity.
-- **Animated hearts**: add a `float-heart` keyframe to `src/styles.css` (gentle 4s ease-in-out vertical drift ±6px + slight rotation wobble), staggered with `animation-delay` so the two hearts breathe out of phase. Respects `prefers-reduced-motion` via `@media (prefers-reduced-motion: reduce) { animation: none }`.
-- "Featured Letter" signature line at the bottom with thin `bg-neon-pink/20` dividers.
+### Writer (no behavioral change today, copy change only)
+- The `WriteLetterModal` preview step keeps its current email-card layout (per user's request) but the **label and microcopy** change so it doesn't promise an email will land in the venue's inbox:
+  - Header: "Preview your Love Letter" (was "Email preview")
+  - Subheader: "What the {venue} team will see when they claim their listing"
+  - Below the card, add a small note: "Posted publicly to the Wall of Love. The {venue} team gets notified when they claim their venue on iBloov."
+  - Button stays "Send Love 💌"
 
-### Typography (already loaded)
+### Venue / business owner (new, phase 1)
+- Each public letter on the Wall shows a "Are you {venue}? Claim to reply →" CTA (the existing `OwnerTeaserBanner` becomes per-card).
+- Claim page: owner verifies via one of:
+  - Google Business Profile OAuth (preferred — proves ownership instantly)
+  - Email link sent to an address on the venue's own published domain
+  - 6-digit code mailed/displayed to the venue's public address
+- After claim, owner enters a **notification email** and toggles "Email me when I receive a Love Letter."
+- Only then does the queue start sending letter notifications to that address. Every email includes a one-click unsubscribe and a "why am I getting this?" explainer.
 
-- Eyebrow label "I LOVE THIS PLACE BECAUSE": `font-display` (Space Grotesk), uppercase, tracking-widest, `text-neon-pink`.
-- Excerpt: DM Sans medium (loaded once in `src/styles.css` next to the existing Inter/Space Grotesk `@import url(...)`).
-- CTA label: `font-display` semibold.
+### Phase 2 (optional, gated behind explicit user approval later)
+- Pull contact email from Google Business Profile API for **unclaimed** venues, with full provenance disclosure in the email footer.
 
-### CTA
+## Technical implementation (phase 1 only)
 
-Re-implement the existing "Read & Write more" pill with the gradient sheen treatment: `bg-gradient-love` base + transparent white overlay that fades in on group-hover, arrow icon (`ArrowRight` from lucide) that nudges right on hover. Keep the existing click handler (currently no-op) intact.
+**Frontend — copy + UI only, no business logic yet:**
+- `src/components/love-letters/WriteLetterModal.tsx` — rename "Email preview" → "Preview your Love Letter", update subheader and add provenance note. Keep the email-card visual.
+- `src/components/love-letters/WallOfLove.tsx` — add a small "Are you {venue}? Claim to reply" link on each letter card.
+- New route `src/routes/claim.$venueId.tsx` — placeholder claim landing page explaining the three verification options (UI only for now; no real verification wired yet).
 
-### Motion (Framer Motion, already used)
+**Backend — defer to when claim flow is actually built:**
+- No Lovable Cloud / no email sending in this phase.
+- No `email_domain--setup_email_infra` yet — we don't email anyone until the claim flow exists.
+- Document the data model decision: venues table will get `claimed_by`, `notification_email`, `notification_opt_in`, `notification_consent_at`.
 
-Replace the current `initial/animate/exit` on the panel with a richer reveal:
+**Legal copy (add to footer / about):**
+- "iBloov never emails a business unless they've claimed their venue and opted in. Letters to unclaimed venues live publicly on our Wall of Love."
+- Privacy page section: "How we contact businesses" — describes the claim-first model.
 
-- Panel: `initial={{ height: 0, opacity: 0 }}` → `animate={{ height: 'auto', opacity: 1 }}`, `transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}`.
-- Inner content wrapper: staggered children — eyebrow (delay 0.05s), excerpt (0.12s), CTA (0.20s), signature (0.28s), each fading + sliding up 8px.
+## What this plan does NOT do
 
-## Files to touch
+- Does not enable Lovable Cloud (no backend needed for phase 1 copy + UI changes).
+- Does not build the actual claim verification (Google OAuth, domain email, mailed code) — that is its own scoped project.
+- Does not send any emails. The current flow already only shows a toast; this plan keeps that behavior and just corrects the framing.
+- Does not change the "Public + opt-in email" model the user chose — it is the foundation, just not implemented end-to-end in one go.
 
-- `src/components/love-letters/WallOfLove.tsx` — replace lines 277–300 (the `AnimatePresence` block for the expanded panel). Add imports for `ArrowRight` from `lucide-react`.
-- `src/styles.css` — add the DM Sans font import alongside the existing Google Fonts `@import`, add `--font-body-quote` token (optional), and add `@keyframes float-heart` + `.animate-float-heart` utility with the reduced-motion guard.
+## Suggested next step after this plan
 
-## Out of scope
-
-- Collapsed row, rank chip, rating, letter count, chevron, category badge — unchanged.
-- Filter chips, location search, time dropdown, section header — unchanged.
-- `mockVenues.ts` — unchanged. The excerpt text already exists on each venue.
+Once the framing is correct, the next focused task is the **claim flow** (route + verification provider). That's where Lovable Cloud, the venues table, and email infrastructure get added.
