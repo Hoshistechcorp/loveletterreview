@@ -478,16 +478,21 @@ export function WallOfLove({
                             <div className="h-px w-8 bg-neon-pink/20" />
                           </motion.div>
 
-                          <motion.a
-                            href={`/claim/${v.id}`}
-                            onClick={(e) => e.stopPropagation()}
+                          <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ duration: 0.4, delay: 0.34 }}
-                            className="mt-4 text-[11px] font-medium text-foreground/50 underline decoration-dotted underline-offset-4 transition hover:text-mint sm:text-xs"
+                            className="mt-4"
                           >
-                            Are you {v.name}? Claim to reply →
-                          </motion.a>
+                            <Link
+                              to="/business"
+                              search={{ venueId: v.id }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[11px] font-medium text-foreground/50 underline decoration-dotted underline-offset-4 transition hover:text-mint sm:text-xs"
+                            >
+                              Are you {v.name}? Sign in to reply →
+                            </Link>
+                          </motion.div>
 
                         </div>
                       </motion.div>
