@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronDown, Clock, Globe2, Heart, MapPin, Search, TrendingUp, X } from "lucide-react";
-import { trendingVenues, type TrendingVenue } from "@/lib/love-letters/mockVenues";
+import { Link } from "@tanstack/react-router";
+import { CATEGORY_GROUPS, trendingVenues, type CategoryGroup, type TrendingVenue } from "@/lib/love-letters/mockVenues";
 import { EmptyState } from "./EmptyState";
 import { WallSkeleton } from "./WallSkeleton";
 
 export type WallFilter = "top" | "most" | "new";
 export type WallTime = "today" | "week" | "month" | "all";
+export type WallCategory = "all" | CategoryGroup;
 
 const FILTERS: { id: WallFilter; label: string }[] = [
   { id: "top", label: "Top rated" },
@@ -45,6 +47,7 @@ export function WallOfLove({
   const [filterState, setFilterState] = useState<WallFilter>("top");
   const [locationState, setLocationState] = useState("");
   const [timeState, setTimeState] = useState<WallTime>("all");
+  const [categoryState, setCategoryState] = useState<WallCategory>("all");
   const [timeOpen, setTimeOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [locationFocused, setLocationFocused] = useState(false);
@@ -56,6 +59,8 @@ export function WallOfLove({
   const setLocation = (v: string) => (onLocationChange ? onLocationChange(v) : setLocationState(v));
   const time = timeProp ?? timeState;
   const setTime = (t: WallTime) => (onTimeChange ? onTimeChange(t) : setTimeState(t));
+  const category = categoryState;
+  const setCategory = (c: WallCategory) => setCategoryState(c);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -97,6 +102,9 @@ export function WallOfLove({
       );
     }
 
+    // Category group
+    if (category !== "all") copy = copy.filter((v) => v.categoryGroup === category);
+
     // Time
     const cutoff = TIMES.find((x) => x.id === time)?.days ?? null;
     if (cutoff !== null) {
@@ -109,7 +117,7 @@ export function WallOfLove({
     else copy = copy.filter((v) => v.daysAgo <= 7).sort((a, b) => a.daysAgo - b.daysAgo);
 
     return copy.slice(0, TOP_N);
-  }, [venues, filter, location, time]);
+  }, [venues, filter, location, time, category]);
 
   const hasLetters = sorted.length > 0;
   const timeLabel = TIMES.find((t) => t.id === time)?.label ?? "All time";
@@ -268,7 +276,29 @@ export function WallOfLove({
               );
             })}
           </div>
+
+          {/* Category browser (TripAdvisor-style) */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(["all", ...CATEGORY_GROUPS] as WallCategory[]).map((c) => {
+              const active = category === c;
+              const label = c === "all" ? "All categories" : c;
+              return (
+                <button
+                  key={c}
+                  onClick={() => setCategory(c)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                    active
+                      ? "border-mint bg-mint/10 text-mint"
+                      : "border-foreground/10 bg-transparent text-foreground/60 hover:border-mint/30 hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
+
 
         {isLoading ? (
           <WallSkeleton />
@@ -421,19 +451,19 @@ export function WallOfLove({
                             </span>
                           </motion.div>
 
-                          <motion.button
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4, delay: 0.2 }}
+                          <Link
+                            to="/venue/$venueId"
+                            params={{ venueId: v.id }}
+                            onClick={(e) => e.stopPropagation()}
                             className="group/cta relative inline-flex items-center gap-3 overflow-hidden rounded-full px-8 py-3.5 shadow-glow-pink transition-all duration-300 hover:scale-[1.03] active:scale-95 sm:px-10 sm:py-4"
                           >
                             <span className="absolute inset-0 bg-gradient-love" />
                             <span className="absolute inset-0 bg-white/0 transition-opacity duration-300 group-hover/cta:bg-white/10" />
                             <span className="relative font-display text-sm font-bold tracking-wide text-white sm:text-base">
-                              Read &amp; Write more
+                              Read all reviews &amp; write yours
                             </span>
                             <ArrowRight className="relative h-5 w-5 text-white transition-transform group-hover/cta:translate-x-1" />
-                          </motion.button>
+                          </Link>
 
                           <motion.div
                             initial={{ opacity: 0, y: 8 }}
