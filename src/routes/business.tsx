@@ -7,6 +7,7 @@ import {
   BarChart3,
   Building2,
   Check,
+  Globe,
   Heart,
   Inbox,
   Loader2,
@@ -15,9 +16,9 @@ import {
   Mail,
   MapPin,
   MessageCircle,
-  Search,
   Send,
   Sparkles,
+  Tag,
   TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -36,11 +37,29 @@ export const Route = createFileRoute("/business")({
   component: BusinessPage,
 });
 
-type OwnerSession = { userId: string; email: string; businessId: string; businessName: string };
-const BIZ_PICK_KEY = "ibloov.biz.pick"; // { userId: { businessId, businessName } }
-const RESPONSES_KEY = "ibloov.biz.responses";
+type OwnerBusiness = {
+  businessId: string;
+  businessName: string;
+  city: string;
+  country: string;
+  category: string;
+  website: string;
+  address: string;
+  description: string;
+  photo: string;
+};
 
-function loadPicks(): Record<string, { businessId: string; businessName: string }> {
+type OwnerSession = {
+  userId: string;
+  email: string;
+} & OwnerBusiness;
+
+const BIZ_PICK_KEY = "ibloov.biz.pick"; // { userId: OwnerBusiness }
+const RESPONSES_KEY = "ibloov.biz.responses";
+const DEFAULT_PHOTO =
+  "https://images.unsplash.com/photo-1559329007-40df8a9345d8?auto=format&fit=crop&w=600&q=70";
+
+function loadPicks(): Record<string, OwnerBusiness> {
   if (typeof window === "undefined") return {};
   try {
     return JSON.parse(window.localStorage.getItem(BIZ_PICK_KEY) ?? "{}");
@@ -48,10 +67,10 @@ function loadPicks(): Record<string, { businessId: string; businessName: string 
     return {};
   }
 }
-function savePick(userId: string, businessId: string, businessName: string) {
+function savePick(userId: string, biz: OwnerBusiness) {
   if (typeof window === "undefined") return;
   const all = loadPicks();
-  all[userId] = { businessId, businessName };
+  all[userId] = biz;
   window.localStorage.setItem(BIZ_PICK_KEY, JSON.stringify(all));
 }
 function loadResponses(): Record<string, string> {
@@ -67,7 +86,7 @@ function saveResponses(r: Record<string, string>) {
   window.localStorage.setItem(RESPONSES_KEY, JSON.stringify(r));
 }
 
-type Step = "signin" | "select" | "dashboard";
+type Step = "signin" | "onboarding" | "dashboard";
 
 function BusinessPage() {
   const { venueId } = Route.useSearch();
@@ -76,7 +95,6 @@ function BusinessPage() {
   const [session, setSession] = useState<OwnerSession | null>(null);
   const [bootstrapping, setBootstrapping] = useState(true);
 
-  // Hydrate from Supabase auth
   useEffect(() => {
     let active = true;
     const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
@@ -101,21 +119,15 @@ function BusinessPage() {
     };
   }, []);
 
-  // Once signed in, decide between select / dashboard
   useEffect(() => {
     if (!authUser) return;
     const pick = loadPicks()[authUser.id];
     if (pick) {
-      setSession({
-        userId: authUser.id,
-        email: authUser.email,
-        businessId: pick.businessId,
-        businessName: pick.businessName,
-      });
+      setSession({ userId: authUser.id, email: authUser.email, ...pick });
       setStep("dashboard");
     } else {
       setSession(null);
-      setStep("select");
+      setStep("onboarding");
     }
   }, [authUser]);
 
@@ -124,32 +136,32 @@ function BusinessPage() {
     [venueId],
   );
 
-  function handlePickBusiness(v: TrendingVenue) {
+  function handleOnboard(biz: OwnerBusiness) {
     if (!authUser) return;
-    savePick(authUser.id, v.id, v.name);
-    // Best-effort upsert into profiles (RLS scoped to auth.uid())
+    savePick(authUser.id, biz);
     supabase
       .from("profiles")
       .upsert(
         {
           id: authUser.id,
           email: authUser.email,
-          business_id: v.id,
-          business_name: v.name,
+          business_id: biz.businessId,
+          business_name: biz.businessName,
+          business_city: biz.city,
+          business_country: biz.country,
+          business_category: biz.category,
+          business_website: biz.website,
+          business_address: biz.address,
+          business_description: biz.description,
         },
         { onConflict: "id" },
       )
       .then(({ error }) => {
         if (error) console.warn("profile upsert", error.message);
       });
-    setSession({
-      userId: authUser.id,
-      email: authUser.email,
-      businessId: v.id,
-      businessName: v.name,
-    });
+    setSession({ userId: authUser.id, email: authUser.email, ...biz });
     setStep("dashboard");
-    toast.success(`Welcome, ${v.name}! Your Love Letters are unlocked.`);
+    toast.success(`${biz.businessName} is live on iBloov.`);
   }
 
   async function handleSignOut() {
@@ -176,23 +188,17 @@ function BusinessPage() {
           </div>
         ) : (
           <AnimatePresence mode="wait">
-            {step === "signin" && (
-              <SignInStep key="signin" venue={venueFromLink} />
-            )}
-            {step === "select" && authUser && (
-              <SelectBusinessStep
-                key="select"
+            {step === "signin" && <SignInStep key="signin" venue={venueFromLink} />}
+            {step === "onboarding" && authUser && (
+              <OnboardingStep
+                key="onboarding"
                 email={authUser.email}
                 suggested={venueFromLink}
-                onPick={handlePickBusiness}
+                onSubmit={handleOnboard}
               />
             )}
             {step === "dashboard" && session && (
-              <Dashboard
-                key="dashboard"
-                session={session}
-                onSignOut={handleSignOut}
-              />
+              <Dashboard key="dashboard" session={session} onSignOut={handleSignOut} />
             )}
           </AnimatePresence>
         )}
@@ -202,9 +208,9 @@ function BusinessPage() {
   );
 }
 
-/* ---------------- Step 1: Sign in / Sign up ---------------- */
+/* ---------------- Step 1: Sign in / Sign up / Forgot password ---------------- */
 
-type AuthMode = "signin" | "signup";
+type AuthMode = "signin" | "signup" | "forgot";
 
 function SignInStep({ venue }: { venue: TrendingVenue | null }) {
   const [mode, setMode] = useState<AuthMode>("signin");
@@ -229,13 +235,21 @@ function SignInStep({ venue }: { venue: TrendingVenue | null }) {
         });
         if (error) throw error;
         toast.success("Account created — you're signed in.");
-      } else {
+      } else if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
         });
         if (error) throw error;
         toast.success("Welcome back.");
+      } else {
+        // forgot
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: window.location.origin + "/reset-password",
+        });
+        if (error) throw error;
+        toast.success("Check your email for a reset link.");
+        setMode("signin");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong";
@@ -256,13 +270,15 @@ function SignInStep({ venue }: { venue: TrendingVenue | null }) {
         setSubmitting(false);
         return;
       }
-      // If redirected:true, browser will navigate. If tokens returned, session is set by helper.
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Sign-in failed";
       toast.error(msg);
       setSubmitting(false);
     }
   }
+
+  const isForgot = mode === "forgot";
+  const isSignup = mode === "signup";
 
   return (
     <motion.div
@@ -277,44 +293,52 @@ function SignInStep({ venue }: { venue: TrendingVenue | null }) {
           <Sparkles className="h-3 w-3" /> For business owners
         </span>
         <h1 className="mt-3 font-display text-3xl font-bold sm:text-4xl">
-          {mode === "signup" ? "Create your account" : "Read your "}
-          {mode === "signin" && (
-            <span className="text-gradient-love">Love Letters</span>
-          )}
+          {isForgot
+            ? "Reset your password"
+            : isSignup
+              ? "Create your account"
+              : "Read your "}
+          {mode === "signin" && <span className="text-gradient-love">Love Letters</span>}
         </h1>
         <p className="mx-auto mt-2 max-w-md text-sm text-foreground/65">
-          {venue
-            ? `Sign in to ${venue.name} to see what travelers are saying — and reply publicly.`
-            : "Sign in to list your business, see every letter people have written about you, and respond on the Wall of Love."}
+          {isForgot
+            ? "Enter your email and we'll send a link to set a new password."
+            : venue
+              ? `Sign in to ${venue.name} to see what travelers are saying — and reply publicly.`
+              : "Sign in to list your business, see every letter people write about you, and respond on the Wall of Love."}
         </p>
       </div>
 
       <div className="glass rounded-3xl p-5 sm:p-7">
-        <div className="space-y-2.5">
-          <button
-            onClick={() => handleOAuth("google")}
-            disabled={submitting}
-            className="flex w-full items-center justify-center gap-2.5 rounded-full border border-foreground/15 bg-foreground/[0.03] px-4 py-3 text-sm font-semibold text-foreground transition hover:border-mint/40 hover:bg-foreground/[0.06] disabled:opacity-60"
-          >
-            <GoogleIcon /> Continue with Google
-          </button>
-          <button
-            onClick={() => handleOAuth("apple")}
-            disabled={submitting}
-            className="flex w-full items-center justify-center gap-2.5 rounded-full border border-foreground/15 bg-foreground/[0.03] px-4 py-3 text-sm font-semibold text-foreground transition hover:border-mint/40 hover:bg-foreground/[0.06] disabled:opacity-60"
-          >
-            <AppleIcon /> Continue with Apple
-          </button>
-        </div>
+        {!isForgot && (
+          <>
+            <div className="space-y-2.5">
+              <button
+                onClick={() => handleOAuth("google")}
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-2.5 rounded-full border border-foreground/15 bg-foreground/[0.03] px-4 py-3 text-sm font-semibold text-foreground transition hover:border-mint/40 hover:bg-foreground/[0.06] disabled:opacity-60"
+              >
+                <GoogleIcon /> Continue with Google
+              </button>
+              <button
+                onClick={() => handleOAuth("apple")}
+                disabled={submitting}
+                className="flex w-full items-center justify-center gap-2.5 rounded-full border border-foreground/15 bg-foreground/[0.03] px-4 py-3 text-sm font-semibold text-foreground transition hover:border-mint/40 hover:bg-foreground/[0.06] disabled:opacity-60"
+              >
+                <AppleIcon /> Continue with Apple
+              </button>
+            </div>
 
-        <div className="my-4 flex items-center gap-3 text-[10px] uppercase tracking-widest text-foreground/40">
-          <div className="h-px flex-1 bg-foreground/10" />
-          or with email
-          <div className="h-px flex-1 bg-foreground/10" />
-        </div>
+            <div className="my-4 flex items-center gap-3 text-[10px] uppercase tracking-widest text-foreground/40">
+              <div className="h-px flex-1 bg-foreground/10" />
+              or with email
+              <div className="h-px flex-1 bg-foreground/10" />
+            </div>
+          </>
+        )}
 
         <form onSubmit={handleEmailSubmit} className="space-y-2.5">
-          {mode === "signup" && (
+          {isSignup && (
             <div className="relative">
               <Sparkles className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
               <input
@@ -338,29 +362,48 @@ function SignInStep({ venue }: { venue: TrendingVenue | null }) {
               className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
             />
           </div>
-          <div className="relative">
-            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
-              placeholder={mode === "signup" ? "Create a password (min 6)" : "Your password"}
-              className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
-            />
-          </div>
+          {!isForgot && (
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                autoComplete={isSignup ? "new-password" : "current-password"}
+                placeholder={isSignup ? "Create a password (min 6)" : "Your password"}
+                className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
+              />
+            </div>
+          )}
+
+          {mode === "signin" && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setMode("forgot")}
+                className="text-[12px] font-semibold text-foreground/60 hover:text-mint"
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={submitting || !email.trim() || password.length < 6}
+            disabled={
+              submitting ||
+              !email.trim() ||
+              (!isForgot && password.length < 6)
+            }
             className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-love px-4 py-3 text-sm font-bold text-white shadow-glow-pink transition hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
           >
             {submitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <>
-                {mode === "signup" ? "Create account" : "Sign in"}
+                {isForgot ? "Send reset link" : isSignup ? "Create account" : "Sign in"}
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
@@ -368,7 +411,7 @@ function SignInStep({ venue }: { venue: TrendingVenue | null }) {
         </form>
 
         <p className="mt-4 text-center text-[12px] text-foreground/55">
-          {mode === "signin" ? (
+          {mode === "signin" && (
             <>
               New here?{" "}
               <button
@@ -379,7 +422,8 @@ function SignInStep({ venue }: { venue: TrendingVenue | null }) {
                 Create a business account
               </button>
             </>
-          ) : (
+          )}
+          {mode === "signup" && (
             <>
               Already have an account?{" "}
               <button
@@ -391,35 +435,83 @@ function SignInStep({ venue }: { venue: TrendingVenue | null }) {
               </button>
             </>
           )}
+          {mode === "forgot" && (
+            <>
+              Remembered it?{" "}
+              <button
+                type="button"
+                onClick={() => setMode("signin")}
+                className="font-semibold text-mint hover:underline"
+              >
+                Back to sign in
+              </button>
+            </>
+          )}
         </p>
       </div>
     </motion.div>
   );
 }
 
-/* ---------------- Step 2: Select business ---------------- */
+/* ---------------- Step 2: Business onboarding ---------------- */
 
-function SelectBusinessStep({
+const CATEGORIES = [
+  "Restaurant",
+  "Cafe",
+  "Bar",
+  "Hotel",
+  "Things to do",
+  "Shop",
+  "Spa & wellness",
+  "Other",
+];
+
+function slugify(s: string) {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 48);
+}
+
+function OnboardingStep({
   email,
   suggested,
-  onPick,
+  onSubmit,
 }: {
   email: string;
   suggested: TrendingVenue | null;
-  onPick: (v: TrendingVenue) => void;
+  onSubmit: (b: OwnerBusiness) => void;
 }) {
-  const [q, setQ] = useState("");
-  const matches = useMemo(() => {
-    const query = q.trim().toLowerCase();
-    if (!query) return suggested ? [suggested] : trendingVenues.slice(0, 6);
-    return trendingVenues
-      .filter(
-        (v) =>
-          v.name.toLowerCase().includes(query) ||
-          v.city.toLowerCase().includes(query),
-      )
-      .slice(0, 8);
-  }, [q, suggested]);
+  const [name, setName] = useState(suggested?.name ?? "");
+  const [city, setCity] = useState(suggested?.city ?? "");
+  const [country, setCountry] = useState(suggested?.country ?? "");
+  const [category, setCategory] = useState(suggested?.category ?? CATEGORIES[0]);
+  const [website, setWebsite] = useState("");
+  const [address, setAddress] = useState("");
+  const [description, setDescription] = useState(suggested?.excerpt ?? "");
+
+  const canSubmit =
+    name.trim().length >= 2 &&
+    city.trim().length >= 2 &&
+    country.trim().length >= 2 &&
+    category.trim().length > 0;
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!canSubmit) return;
+    onSubmit({
+      businessId: suggested?.id ?? `biz-${slugify(name)}-${Date.now().toString(36)}`,
+      businessName: name.trim(),
+      city: city.trim(),
+      country: country.trim(),
+      category: category.trim(),
+      website: website.trim(),
+      address: address.trim(),
+      description: description.trim(),
+      photo: suggested?.photo ?? DEFAULT_PHOTO,
+    });
+  }
 
   return (
     <motion.div
@@ -430,86 +522,179 @@ function SelectBusinessStep({
       className="mx-auto max-w-2xl"
     >
       <div className="mb-5 text-center">
-        <h1 className="font-display text-2xl font-bold sm:text-3xl">
-          Pick your business
+        <span className="inline-flex items-center gap-1 rounded-full border border-mint/30 bg-mint/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-mint">
+          <Building2 className="h-3 w-3" /> List your business
+        </span>
+        <h1 className="mt-3 font-display text-2xl font-bold sm:text-3xl">
+          Tell us about your business
         </h1>
         <p className="mt-1 text-sm text-foreground/60">
-          Signed in as <span className="font-semibold text-foreground/80">{email}</span> · choose the venue you own.
+          Signed in as <span className="font-semibold text-foreground/80">{email}</span>. These details power your Wall of Love profile.
         </p>
       </div>
 
-      <div className="glass rounded-3xl p-4 sm:p-6">
-        <div className="relative mb-3">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+      <form onSubmit={handleSubmit} className="glass space-y-3 rounded-3xl p-5 sm:p-7">
+        <Field label="Business name" required>
+          <div className="relative">
+            <Building2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              placeholder="e.g. Marigold Cafe"
+              className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
+            />
+          </div>
+        </Field>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="City" required>
+            <div className="relative">
+              <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+              <input
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                required
+                placeholder="Lisbon"
+                className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
+              />
+            </div>
+          </Field>
+          <Field label="Country" required>
+            <div className="relative">
+              <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+              <input
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                required
+                placeholder="Portugal"
+                className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
+              />
+            </div>
+          </Field>
+        </div>
+
+        <Field label="Category" required>
+          <div className="relative">
+            <Tag className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              required
+              className="w-full appearance-none rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Field>
+
+        <Field label="Street address">
           <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by business name or city…"
-            className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            placeholder="Rua das Flores 23"
+            className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-4 py-3 text-sm outline-none transition focus:border-mint/60"
           />
-        </div>
+        </Field>
 
-        {suggested && !q && (
-          <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-widest text-mint">
-            Suggested from your link
-          </p>
-        )}
+        <Field label="Website">
+          <div className="relative">
+            <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+            <input
+              type="url"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="https://yourbusiness.com"
+              className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
+            />
+          </div>
+        </Field>
 
-        <ul className="flex flex-col gap-2">
-          {matches.map((v) => (
-            <li key={v.id}>
-              <button
-                onClick={() => onPick(v)}
-                className="group flex w-full items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-2.5 text-left transition hover:border-mint/40 hover:bg-mint/[0.04]"
-              >
-                <img
-                  src={v.photo}
-                  alt=""
-                  className="h-12 w-12 shrink-0 rounded-xl object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{v.name}</p>
-                  <p className="flex items-center gap-1 truncate text-[11px] text-foreground/55">
-                    <MapPin className="h-2.5 w-2.5 text-mint" />
-                    {v.city} · {v.country}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-1 text-xs font-semibold text-foreground/70">
-                  <Heart className="h-3 w-3 fill-neon-pink text-neon-pink" />
-                  {v.loveCount}
-                </div>
-                <ArrowRight className="h-4 w-4 shrink-0 text-foreground/30 transition group-hover:translate-x-0.5 group-hover:text-mint" />
-              </button>
-            </li>
-          ))}
-          {matches.length === 0 && (
-            <li className="rounded-2xl border border-dashed border-foreground/15 p-5 text-center text-sm text-foreground/55">
-              No match. Try a different name — or add your business below.
-            </li>
-          )}
-        </ul>
+        <Field label="Short description">
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value.slice(0, 240))}
+            rows={3}
+            placeholder="One sentence about what makes your place special."
+            className="w-full resize-none rounded-2xl border border-foreground/15 bg-foreground/[0.03] px-4 py-3 text-sm outline-none transition focus:border-mint/60"
+          />
+          <div className="mt-1 text-right text-[11px] text-foreground/45">
+            {description.length}/240
+          </div>
+        </Field>
 
-        <div className="mt-4 rounded-2xl border border-dashed border-mint/30 bg-mint/5 p-4 text-center">
-          <p className="text-xs font-semibold text-foreground/70">
-            Don&rsquo;t see your venue?
-          </p>
-          <button
-            onClick={() =>
-              toast.info("In the live app you'd add it here — mock flow ends.")
-            }
-            className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-foreground/90 px-4 py-2 text-xs font-bold text-background transition hover:bg-foreground"
-          >
-            <Building2 className="h-3.5 w-3.5" /> List a new business
-          </button>
-        </div>
-      </div>
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-love px-4 py-3 text-sm font-bold text-white shadow-glow-pink transition hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+        >
+          Create my business profile <ArrowRight className="h-4 w-4" />
+        </button>
+      </form>
     </motion.div>
+  );
+}
+
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block px-1 text-[11px] font-semibold uppercase tracking-widest text-foreground/55">
+        {label}
+        {required && <span className="ml-1 text-neon-pink">*</span>}
+      </span>
+      {children}
+    </label>
   );
 }
 
 /* ---------------- Step 3: Dashboard ---------------- */
 
 type Tab = "inbox" | "analytics" | "respond";
+
+function sessionToVenue(session: OwnerSession): TrendingVenue {
+  const match = trendingVenues.find((v) => v.id === session.businessId);
+  if (match) return match;
+  const groupFor = (cat: string): TrendingVenue["categoryGroup"] => {
+    const c = cat.toLowerCase();
+    if (c.includes("hotel") || c.includes("stay") || c.includes("resort")) return "Hotels & stays";
+    if (c.includes("thing") || c.includes("tour") || c.includes("park")) return "Things to do";
+    if (c.includes("destination")) return "Destinations";
+    return "Restaurants & bars";
+  };
+  return {
+    id: session.businessId,
+    name: session.businessName,
+    address: session.address,
+    city: session.city,
+    website: session.website,
+    imageQuery: session.businessName,
+    claimed: true,
+    rating: 0,
+    loveCount: 0,
+    excerpt: session.description,
+    daysAgo: 0,
+    category: session.category,
+    categoryGroup: groupFor(session.category),
+    country: session.country,
+    region: "",
+    createdAt: Date.now(),
+    photo: session.photo || DEFAULT_PHOTO,
+    reviews: [],
+  };
+}
+
 
 function Dashboard({
   session,
@@ -518,10 +703,7 @@ function Dashboard({
   session: OwnerSession;
   onSignOut: () => void;
 }) {
-  const venue = useMemo(
-    () => trendingVenues.find((v) => v.id === session.businessId) ?? trendingVenues[0],
-    [session.businessId],
-  );
+  const venue = useMemo(() => sessionToVenue(session), [session]);
   const [tab, setTab] = useState<Tab>("inbox");
 
   return (
@@ -531,7 +713,6 @@ function Dashboard({
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.35 }}
     >
-      {/* Owner header */}
       <div className="glass mb-4 flex flex-col items-start gap-3 rounded-3xl p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div className="flex items-center gap-3">
           <img
@@ -543,11 +724,10 @@ function Dashboard({
             <p className="text-[10px] font-bold uppercase tracking-widest text-mint">
               Business dashboard
             </p>
-            <h1 className="font-display text-xl font-bold sm:text-2xl">
-              {venue.name}
-            </h1>
+            <h1 className="font-display text-xl font-bold sm:text-2xl">{venue.name}</h1>
             <p className="text-xs text-foreground/55">
               {session.email} · {venue.city}
+              {venue.country ? `, ${venue.country}` : ""}
             </p>
           </div>
         </div>
@@ -559,7 +739,6 @@ function Dashboard({
         </button>
       </div>
 
-      {/* Tabs */}
       <div className="mb-4 flex gap-1.5 overflow-x-auto">
         {(
           [
@@ -596,6 +775,17 @@ function Dashboard({
 
 function InboxTab({ venue }: { venue: TrendingVenue }) {
   const letters: Review[] = venue.reviews;
+  if (letters.length === 0) {
+    return (
+      <div className="glass rounded-3xl p-8 text-center">
+        <Heart className="mx-auto h-8 w-8 text-neon-pink" />
+        <h3 className="mt-2 font-display text-lg font-bold">No letters yet</h3>
+        <p className="mt-1 text-sm text-foreground/60">
+          Share your iBloov page so travelers can leave Love Letters about {venue.name}.
+        </p>
+      </div>
+    );
+  }
   return (
     <ul className="flex flex-col gap-2.5">
       {letters.map((r, i) => (
@@ -620,9 +810,7 @@ function InboxTab({ venue }: { venue: TrendingVenue }) {
                 </span>
               </div>
               <h4 className="mt-1 font-display text-base font-bold">{r.title}</h4>
-              <p className="mt-0.5 text-sm leading-relaxed text-foreground/75">
-                {r.body}
-              </p>
+              <p className="mt-0.5 text-sm leading-relaxed text-foreground/75">{r.body}</p>
             </div>
           </div>
         </motion.li>
@@ -661,7 +849,7 @@ function AnalyticsTab({ venue }: { venue: TrendingVenue }) {
   const stats = [
     { label: "Total letters", value: venue.loveCount, icon: Heart },
     { label: "Reviews shown", value: reviews.length, icon: Inbox },
-    { label: "Avg rating", value: avg.toFixed(1), icon: TrendingUp },
+    { label: "Avg rating", value: reviews.length ? avg.toFixed(1) : "—", icon: TrendingUp },
     { label: "9+ ratings", value: adoreCount, icon: Sparkles },
   ];
 
@@ -702,21 +890,23 @@ function AnalyticsTab({ venue }: { venue: TrendingVenue }) {
         </div>
       </div>
 
-      <div className="glass rounded-2xl p-5">
-        <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-wider text-foreground/70">
-          Top words travelers use
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {keywords.map((k) => (
-            <span
-              key={k}
-              className="rounded-full border border-mint/30 bg-mint/10 px-3 py-1 text-xs font-semibold text-mint"
-            >
-              {k}
-            </span>
-          ))}
+      {keywords.length > 0 && (
+        <div className="glass rounded-2xl p-5">
+          <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-wider text-foreground/70">
+            Top words travelers use
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {keywords.map((k) => (
+              <span
+                key={k}
+                className="rounded-full border border-mint/30 bg-mint/10 px-3 py-1 text-xs font-semibold text-mint"
+              >
+                {k}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -755,12 +945,10 @@ function RespondTab({ venue }: { venue: TrendingVenue }) {
   return (
     <div className="space-y-4">
       <div className="glass rounded-2xl p-5">
-        <h3 className="font-display text-base font-bold">
-          Say thanks publicly
-        </h3>
+        <h3 className="font-display text-base font-bold">Say thanks publicly</h3>
         <p className="mt-1 text-xs text-foreground/60">
-          One short line from {venue.name} shown beneath your featured letter on
-          the Wall of Love. Keep it warm — no promotions.
+          One short line from {venue.name} shown beneath your featured letter on the Wall
+          of Love. Keep it warm — no promotions.
         </p>
 
         <div className="mt-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3">
@@ -825,7 +1013,10 @@ function RespondTab({ venue }: { venue: TrendingVenue }) {
 function GoogleIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
-      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.5-1.7 4.4-5.5 4.4-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.9 14.6 3 12 3 6.9 3 2.8 7.1 2.8 12s4.1 9 9.2 9c5.3 0 8.8-3.7 8.8-9 0-.6-.1-1.1-.2-1.8H12z" />
+      <path
+        fill="#EA4335"
+        d="M12 10.2v3.9h5.5c-.2 1.5-1.7 4.4-5.5 4.4-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.9 14.6 3 12 3 6.9 3 2.8 7.1 2.8 12s4.1 9 9.2 9c5.3 0 8.8-3.7 8.8-9 0-.6-.1-1.1-.2-1.8H12z"
+      />
     </svg>
   );
 }
