@@ -7,6 +7,7 @@ import {
   BarChart3,
   Building2,
   Check,
+  Globe,
   Heart,
   Inbox,
   Loader2,
@@ -15,9 +16,9 @@ import {
   Mail,
   MapPin,
   MessageCircle,
-  Search,
   Send,
   Sparkles,
+  Tag,
   TrendingUp,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ import { Navbar } from "@/components/love-letters/Navbar";
 import { Footer } from "@/components/love-letters/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+
 
 type SearchParams = { venueId?: string };
 
