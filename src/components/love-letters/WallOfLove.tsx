@@ -276,7 +276,29 @@ export function WallOfLove({
               );
             })}
           </div>
+
+          {/* Category browser (TripAdvisor-style) */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {(["all", ...CATEGORY_GROUPS] as WallCategory[]).map((c) => {
+              const active = category === c;
+              const label = c === "all" ? "All categories" : c;
+              return (
+                <button
+                  key={c}
+                  onClick={() => setCategory(c)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                    active
+                      ? "border-mint bg-mint/10 text-mint"
+                      : "border-foreground/10 bg-transparent text-foreground/60 hover:border-mint/30 hover:text-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
+
 
         {isLoading ? (
           <WallSkeleton />
