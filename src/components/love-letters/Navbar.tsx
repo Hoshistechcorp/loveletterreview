@@ -17,14 +17,12 @@ export function Navbar() {
           >
             <Bookmark className="h-5 w-5" />
           </Link>
-          <a
-            href="https://auralink.ibloov.com"
-            target="_blank"
-            rel="noreferrer"
+          <Link
+            to="/business"
             className="hidden rounded-full bg-gradient-love px-4 py-2 text-sm font-semibold text-white shadow-glow-pink transition hover:brightness-110 sm:inline-block"
           >
-            Claim your venue
-          </a>
+            For business
+          </Link>
           <button
             aria-label="Menu"
             className="rounded-full border border-black/10 bg-white p-2 text-foreground/80 hover:bg-black/5"
