@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SavedRouteImport } from './routes/saved'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VenueVenueIdRouteImport } from './routes/venue.$venueId'
-import { Route as ClaimVenueIdRouteImport } from './routes/claim.$venueId'
 
 const SavedRoute = SavedRouteImport.update({
   id: '/saved',
@@ -29,43 +28,34 @@ const VenueVenueIdRoute = VenueVenueIdRouteImport.update({
   path: '/venue/$venueId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ClaimVenueIdRoute = ClaimVenueIdRouteImport.update({
-  id: '/claim/$venueId',
-  path: '/claim/$venueId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/saved': typeof SavedRoute
-  '/claim/$venueId': typeof ClaimVenueIdRoute
   '/venue/$venueId': typeof VenueVenueIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/saved': typeof SavedRoute
-  '/claim/$venueId': typeof ClaimVenueIdRoute
   '/venue/$venueId': typeof VenueVenueIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/saved': typeof SavedRoute
-  '/claim/$venueId': typeof ClaimVenueIdRoute
   '/venue/$venueId': typeof VenueVenueIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/saved' | '/claim/$venueId' | '/venue/$venueId'
+  fullPaths: '/' | '/saved' | '/venue/$venueId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/saved' | '/claim/$venueId' | '/venue/$venueId'
-  id: '__root__' | '/' | '/saved' | '/claim/$venueId' | '/venue/$venueId'
+  to: '/' | '/saved' | '/venue/$venueId'
+  id: '__root__' | '/' | '/saved' | '/venue/$venueId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SavedRoute: typeof SavedRoute
-  ClaimVenueIdRoute: typeof ClaimVenueIdRoute
   VenueVenueIdRoute: typeof VenueVenueIdRoute
 }
 
@@ -92,20 +82,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VenueVenueIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/claim/$venueId': {
-      id: '/claim/$venueId'
-      path: '/claim/$venueId'
-      fullPath: '/claim/$venueId'
-      preLoaderRoute: typeof ClaimVenueIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SavedRoute: SavedRoute,
-  ClaimVenueIdRoute: ClaimVenueIdRoute,
   VenueVenueIdRoute: VenueVenueIdRoute,
 }
 export const routeTree = rootRouteImport
