@@ -11,15 +11,43 @@ export type Venue = {
 // Free-form category — venues can be anything.
 export type VenueScope = "local" | "regional" | "global";
 
+export type CategoryGroup =
+  | "Restaurants & bars"
+  | "Hotels & stays"
+  | "Things to do"
+  | "Destinations";
+
+export const CATEGORY_GROUPS: CategoryGroup[] = [
+  "Restaurants & bars",
+  "Hotels & stays",
+  "Things to do",
+  "Destinations",
+];
+
+export type Review = {
+  id: string;
+  author: string;
+  initials: string;
+  rating: number;
+  title: string;
+  body: string;
+  daysAgo: number;
+  helpful: number;
+  visited: string;
+};
+
 export type TrendingVenue = Venue & {
   rating: number;
   loveCount: number;
   excerpt: string;
   daysAgo: number;
   category: string;
+  categoryGroup: CategoryGroup;
   country: string;
   region: string; // continent / region grouping
   createdAt: number; // ms timestamp — used by time filter
+  photo: string;
+  reviews: Review[];
 };
 
 export type SavedLetter = {
