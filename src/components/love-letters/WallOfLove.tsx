@@ -102,6 +102,9 @@ export function WallOfLove({
       );
     }
 
+    // Category group
+    if (category !== "all") copy = copy.filter((v) => v.categoryGroup === category);
+
     // Time
     const cutoff = TIMES.find((x) => x.id === time)?.days ?? null;
     if (cutoff !== null) {
@@ -114,7 +117,7 @@ export function WallOfLove({
     else copy = copy.filter((v) => v.daysAgo <= 7).sort((a, b) => a.daysAgo - b.daysAgo);
 
     return copy.slice(0, TOP_N);
-  }, [venues, filter, location, time]);
+  }, [venues, filter, location, time, category]);
 
   const hasLetters = sorted.length > 0;
   const timeLabel = TIMES.find((t) => t.id === time)?.label ?? "All time";
