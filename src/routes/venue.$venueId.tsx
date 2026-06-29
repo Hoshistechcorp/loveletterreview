@@ -48,7 +48,7 @@ function VenuePage() {
     const total = venue.reviews.length || 1;
     return buckets.map((b) => {
       const c = venue.reviews.filter(
-        (r) => r.rating >= b.min && r.rating < (b.max === 10 ? 10.01 : b.max),
+        (r: Review) => r.rating >= b.min && r.rating < (b.max === 10 ? 10.01 : b.max),
       ).length;
       return { ...b, count: c, pct: Math.round((c / total) * 100) };
     });
