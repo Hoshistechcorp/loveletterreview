@@ -9,7 +9,9 @@ import {
   Check,
   Heart,
   Inbox,
+  Loader2,
   LogOut,
+  Lock,
   Mail,
   MapPin,
   MessageCircle,
@@ -22,33 +24,35 @@ import { toast } from "sonner";
 import { trendingVenues, type Review, type TrendingVenue } from "@/lib/love-letters/mockVenues";
 import { Navbar } from "@/components/love-letters/Navbar";
 import { Footer } from "@/components/love-letters/Footer";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 
-type Search = { venueId?: string };
+type SearchParams = { venueId?: string };
 
 export const Route = createFileRoute("/business")({
-  validateSearch: (s: Record<string, unknown>): Search => ({
+  validateSearch: (s: Record<string, unknown>): SearchParams => ({
     venueId: typeof s.venueId === "string" ? s.venueId : undefined,
   }),
   component: BusinessPage,
 });
 
-type Session = { email: string; businessId: string; businessName: string };
-const SESSION_KEY = "ibloov.biz.session";
+type OwnerSession = { userId: string; email: string; businessId: string; businessName: string };
+const BIZ_PICK_KEY = "ibloov.biz.pick"; // { userId: { businessId, businessName } }
 const RESPONSES_KEY = "ibloov.biz.responses";
 
-function loadSession(): Session | null {
-  if (typeof window === "undefined") return null;
+function loadPicks(): Record<string, { businessId: string; businessName: string }> {
+  if (typeof window === "undefined") return {};
   try {
-    const raw = window.localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as Session) : null;
+    return JSON.parse(window.localStorage.getItem(BIZ_PICK_KEY) ?? "{}");
   } catch {
-    return null;
+    return {};
   }
 }
-function saveSession(s: Session | null) {
+function savePick(userId: string, businessId: string, businessName: string) {
   if (typeof window === "undefined") return;
-  if (s) window.localStorage.setItem(SESSION_KEY, JSON.stringify(s));
-  else window.localStorage.removeItem(SESSION_KEY);
+  const all = loadPicks();
+  all[userId] = { businessId, businessName };
+  window.localStorage.setItem(BIZ_PICK_KEY, JSON.stringify(all));
 }
 function loadResponses(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -68,50 +72,90 @@ type Step = "signin" | "select" | "dashboard";
 function BusinessPage() {
   const { venueId } = Route.useSearch();
   const [step, setStep] = useState<Step>("signin");
-  const [email, setEmail] = useState("");
-  const [session, setSession] = useState<Session | null>(null);
+  const [authUser, setAuthUser] = useState<{ id: string; email: string } | null>(null);
+  const [session, setSession] = useState<OwnerSession | null>(null);
+  const [bootstrapping, setBootstrapping] = useState(true);
 
-  // Hydrate session from storage on mount
+  // Hydrate from Supabase auth
   useEffect(() => {
-    const s = loadSession();
-    if (s) {
-      setSession(s);
+    let active = true;
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
+      const u = sess?.user;
+      if (u && u.email) {
+        setAuthUser({ id: u.id, email: u.email });
+      } else {
+        setAuthUser(null);
+        setSession(null);
+        setStep("signin");
+      }
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      const u = data.session?.user;
+      if (u && u.email) setAuthUser({ id: u.id, email: u.email });
+      setBootstrapping(false);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  // Once signed in, decide between select / dashboard
+  useEffect(() => {
+    if (!authUser) return;
+    const pick = loadPicks()[authUser.id];
+    if (pick) {
+      setSession({
+        userId: authUser.id,
+        email: authUser.email,
+        businessId: pick.businessId,
+        businessName: pick.businessName,
+      });
       setStep("dashboard");
-    } else if (venueId) {
-      // Deep link: skip to select with prefilled venue intent
-      // (user still has to sign in first)
+    } else {
+      setSession(null);
+      setStep("select");
     }
-  }, [venueId]);
+  }, [authUser]);
 
   const venueFromLink = useMemo(
     () => (venueId ? trendingVenues.find((v) => v.id === venueId) ?? null : null),
     [venueId],
   );
 
-  function handleSignIn(method: "google" | "apple" | "email", emailValue?: string) {
-    // Mock: pretend OAuth succeeded
-    const e =
-      method === "email"
-        ? emailValue ?? email
-        : method === "google"
-        ? "owner@gmail.com"
-        : "owner@icloud.com";
-    setEmail(e);
-    setStep("select");
-  }
-
   function handlePickBusiness(v: TrendingVenue) {
-    const s: Session = { email, businessId: v.id, businessName: v.name };
-    saveSession(s);
-    setSession(s);
+    if (!authUser) return;
+    savePick(authUser.id, v.id, v.name);
+    // Best-effort upsert into profiles (RLS scoped to auth.uid())
+    supabase
+      .from("profiles")
+      .upsert(
+        {
+          id: authUser.id,
+          email: authUser.email,
+          business_id: v.id,
+          business_name: v.name,
+        },
+        { onConflict: "id" },
+      )
+      .then(({ error }) => {
+        if (error) console.warn("profile upsert", error.message);
+      });
+    setSession({
+      userId: authUser.id,
+      email: authUser.email,
+      businessId: v.id,
+      businessName: v.name,
+    });
     setStep("dashboard");
     toast.success(`Welcome, ${v.name}! Your Love Letters are unlocked.`);
   }
 
-  function handleSignOut() {
-    saveSession(null);
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    setAuthUser(null);
     setSession(null);
-    setEmail("");
     setStep("signin");
   }
 
@@ -126,46 +170,100 @@ function BusinessPage() {
           <ArrowLeft className="h-3.5 w-3.5" /> Back to iBloov
         </Link>
 
-        <AnimatePresence mode="wait">
-          {step === "signin" && (
-            <SignInStep
-              key="signin"
-              venue={venueFromLink}
-              onSignIn={handleSignIn}
-            />
-          )}
-          {step === "select" && (
-            <SelectBusinessStep
-              key="select"
-              email={email}
-              suggested={venueFromLink}
-              onPick={handlePickBusiness}
-            />
-          )}
-          {step === "dashboard" && session && (
-            <Dashboard
-              key="dashboard"
-              session={session}
-              onSignOut={handleSignOut}
-            />
-          )}
-        </AnimatePresence>
+        {bootstrapping ? (
+          <div className="flex items-center justify-center py-24 text-foreground/50">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            {step === "signin" && (
+              <SignInStep key="signin" venue={venueFromLink} />
+            )}
+            {step === "select" && authUser && (
+              <SelectBusinessStep
+                key="select"
+                email={authUser.email}
+                suggested={venueFromLink}
+                onPick={handlePickBusiness}
+              />
+            )}
+            {step === "dashboard" && session && (
+              <Dashboard
+                key="dashboard"
+                session={session}
+                onSignOut={handleSignOut}
+              />
+            )}
+          </AnimatePresence>
+        )}
       </div>
       <Footer />
     </div>
   );
 }
 
-/* ---------------- Step 1: Sign in ---------------- */
+/* ---------------- Step 1: Sign in / Sign up ---------------- */
 
-function SignInStep({
-  venue,
-  onSignIn,
-}: {
-  venue: TrendingVenue | null;
-  onSignIn: (method: "google" | "apple" | "email", email?: string) => void;
-}) {
-  const [emailInput, setEmailInput] = useState("");
+type AuthMode = "signin" | "signup";
+
+function SignInStep({ venue }: { venue: TrendingVenue | null }) {
+  const [mode, setMode] = useState<AuthMode>("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      if (mode === "signup") {
+        const { error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            emailRedirectTo: window.location.origin + "/business",
+            data: { full_name: displayName.trim() || undefined },
+          },
+        });
+        if (error) throw error;
+        toast.success("Account created — you're signed in.");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (error) throw error;
+        toast.success("Welcome back.");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleOAuth(provider: "google" | "apple") {
+    setSubmitting(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: window.location.origin + "/business",
+      });
+      if (result.error) {
+        toast.error(result.error instanceof Error ? result.error.message : "Sign-in failed");
+        setSubmitting(false);
+        return;
+      }
+      // If redirected:true, browser will navigate. If tokens returned, session is set by helper.
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Sign-in failed";
+      toast.error(msg);
+      setSubmitting(false);
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -179,7 +277,10 @@ function SignInStep({
           <Sparkles className="h-3 w-3" /> For business owners
         </span>
         <h1 className="mt-3 font-display text-3xl font-bold sm:text-4xl">
-          Read your <span className="text-gradient-love">Love Letters</span>
+          {mode === "signup" ? "Create your account" : "Read your "}
+          {mode === "signin" && (
+            <span className="text-gradient-love">Love Letters</span>
+          )}
         </h1>
         <p className="mx-auto mt-2 max-w-md text-sm text-foreground/65">
           {venue
@@ -191,14 +292,16 @@ function SignInStep({
       <div className="glass rounded-3xl p-5 sm:p-7">
         <div className="space-y-2.5">
           <button
-            onClick={() => onSignIn("google")}
-            className="flex w-full items-center justify-center gap-2.5 rounded-full border border-foreground/15 bg-foreground/[0.03] px-4 py-3 text-sm font-semibold text-foreground transition hover:border-mint/40 hover:bg-foreground/[0.06]"
+            onClick={() => handleOAuth("google")}
+            disabled={submitting}
+            className="flex w-full items-center justify-center gap-2.5 rounded-full border border-foreground/15 bg-foreground/[0.03] px-4 py-3 text-sm font-semibold text-foreground transition hover:border-mint/40 hover:bg-foreground/[0.06] disabled:opacity-60"
           >
             <GoogleIcon /> Continue with Google
           </button>
           <button
-            onClick={() => onSignIn("apple")}
-            className="flex w-full items-center justify-center gap-2.5 rounded-full border border-foreground/15 bg-foreground/[0.03] px-4 py-3 text-sm font-semibold text-foreground transition hover:border-mint/40 hover:bg-foreground/[0.06]"
+            onClick={() => handleOAuth("apple")}
+            disabled={submitting}
+            className="flex w-full items-center justify-center gap-2.5 rounded-full border border-foreground/15 bg-foreground/[0.03] px-4 py-3 text-sm font-semibold text-foreground transition hover:border-mint/40 hover:bg-foreground/[0.06] disabled:opacity-60"
           >
             <AppleIcon /> Continue with Apple
           </button>
@@ -206,40 +309,88 @@ function SignInStep({
 
         <div className="my-4 flex items-center gap-3 text-[10px] uppercase tracking-widest text-foreground/40">
           <div className="h-px flex-1 bg-foreground/10" />
-          or use work email
+          or with email
           <div className="h-px flex-1 bg-foreground/10" />
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (emailInput.trim()) onSignIn("email", emailInput.trim());
-          }}
-          className="space-y-2.5"
-        >
+        <form onSubmit={handleEmailSubmit} className="space-y-2.5">
+          {mode === "signup" && (
+            <div className="relative">
+              <Sparkles className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Your name"
+                className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
+              />
+            </div>
+          )}
           <div className="relative">
             <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
             <input
               type="email"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
               placeholder="hello@yourbusiness.com"
+              className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
+            />
+          </div>
+          <div className="relative">
+            <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              placeholder={mode === "signup" ? "Create a password (min 6)" : "Your password"}
               className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
             />
           </div>
           <button
             type="submit"
-            disabled={!emailInput.trim()}
+            disabled={submitting || !email.trim() || password.length < 6}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-love px-4 py-3 text-sm font-bold text-white shadow-glow-pink transition hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
           >
-            Send magic link <ArrowRight className="h-4 w-4" />
+            {submitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                {mode === "signup" ? "Create account" : "Sign in"}
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-[11px] text-foreground/45">
-          We only email businesses that sign in here. Letters stay public on the
-          Wall regardless.
+        <p className="mt-4 text-center text-[12px] text-foreground/55">
+          {mode === "signin" ? (
+            <>
+              New here?{" "}
+              <button
+                type="button"
+                onClick={() => setMode("signup")}
+                className="font-semibold text-mint hover:underline"
+              >
+                Create a business account
+              </button>
+            </>
+          ) : (
+            <>
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setMode("signin")}
+                className="font-semibold text-mint hover:underline"
+              >
+                Sign in
+              </button>
+            </>
+          )}
         </p>
       </div>
     </motion.div>
@@ -364,7 +515,7 @@ function Dashboard({
   session,
   onSignOut,
 }: {
-  session: Session;
+  session: OwnerSession;
   onSignOut: () => void;
 }) {
   const venue = useMemo(
@@ -485,15 +636,13 @@ function AnalyticsTab({ venue }: { venue: TrendingVenue }) {
   const avg = reviews.reduce((s, r) => s + r.rating, 0) / Math.max(reviews.length, 1);
   const adoreCount = reviews.filter((r) => r.rating >= 9).length;
 
-  // Mock weekly trend from review timestamps
-  const buckets = [0, 0, 0, 0]; // last 4 weeks
+  const buckets = [0, 0, 0, 0];
   reviews.forEach((r) => {
     const w = Math.min(3, Math.floor(r.daysAgo / 7));
     buckets[3 - w] += 1;
   });
   const maxB = Math.max(1, ...buckets);
 
-  // Keywords: pull frequent meaningful words from excerpts/bodies
   const text = (venue.excerpt + " " + reviews.map((r) => r.body).join(" ")).toLowerCase();
   const stop = new Set(
     "the and a an is are was were be been being to of in on at it its for with from this that these those you your i we our us they them he she his her as by or but if not so do does did have has had like just very really feel feels felt place places".split(" "),
