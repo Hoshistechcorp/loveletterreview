@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronDown, Clock, Globe2, Heart, MapPin, Search, TrendingUp, X } from "lucide-react";
-import { trendingVenues, type TrendingVenue } from "@/lib/love-letters/mockVenues";
+import { Link } from "@tanstack/react-router";
+import { CATEGORY_GROUPS, trendingVenues, type CategoryGroup, type TrendingVenue } from "@/lib/love-letters/mockVenues";
 import { EmptyState } from "./EmptyState";
 import { WallSkeleton } from "./WallSkeleton";
 
 export type WallFilter = "top" | "most" | "new";
 export type WallTime = "today" | "week" | "month" | "all";
+export type WallCategory = "all" | CategoryGroup;
 
 const FILTERS: { id: WallFilter; label: string }[] = [
   { id: "top", label: "Top rated" },
