@@ -47,6 +47,7 @@ export function WallOfLove({
   const [filterState, setFilterState] = useState<WallFilter>("top");
   const [locationState, setLocationState] = useState("");
   const [timeState, setTimeState] = useState<WallTime>("all");
+  const [categoryState, setCategoryState] = useState<WallCategory>("all");
   const [timeOpen, setTimeOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [locationFocused, setLocationFocused] = useState(false);
@@ -58,6 +59,8 @@ export function WallOfLove({
   const setLocation = (v: string) => (onLocationChange ? onLocationChange(v) : setLocationState(v));
   const time = timeProp ?? timeState;
   const setTime = (t: WallTime) => (onTimeChange ? onTimeChange(t) : setTimeState(t));
+  const category = categoryState;
+  const setCategory = (c: WallCategory) => setCategoryState(c);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
