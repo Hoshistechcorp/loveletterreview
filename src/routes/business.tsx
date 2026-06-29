@@ -664,25 +664,37 @@ function Field({
 type Tab = "inbox" | "analytics" | "respond";
 
 function sessionToVenue(session: OwnerSession): TrendingVenue {
-  // Prefer matching demo venue (so the inbox/analytics show example letters)
   const match = trendingVenues.find((v) => v.id === session.businessId);
   if (match) return match;
+  const groupFor = (cat: string): TrendingVenue["categoryGroup"] => {
+    const c = cat.toLowerCase();
+    if (c.includes("hotel") || c.includes("stay") || c.includes("resort")) return "Hotels & stays";
+    if (c.includes("thing") || c.includes("tour") || c.includes("park")) return "Things to do";
+    if (c.includes("destination")) return "Destinations";
+    return "Restaurants & bars";
+  };
   return {
     id: session.businessId,
     name: session.businessName,
+    address: session.address,
     city: session.city,
+    website: session.website,
+    imageQuery: session.businessName,
+    claimed: true,
+    rating: 0,
+    loveCount: 0,
+    excerpt: session.description,
+    daysAgo: 0,
+    category: session.category,
+    categoryGroup: groupFor(session.category),
     country: session.country,
     region: "",
-    category: session.category,
+    createdAt: Date.now(),
     photo: session.photo || DEFAULT_PHOTO,
-    loveCount: 0,
-    rank: 0,
-    daysAgo: 0,
-    teaser: session.description,
-    excerpt: session.description,
     reviews: [],
-  } as TrendingVenue;
+  };
 }
+
 
 function Dashboard({
   session,
