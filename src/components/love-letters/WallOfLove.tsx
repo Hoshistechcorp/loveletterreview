@@ -451,19 +451,19 @@ export function WallOfLove({
                             </span>
                           </motion.div>
 
-                          <motion.button
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4, delay: 0.2 }}
+                          <Link
+                            to="/venue/$venueId"
+                            params={{ venueId: v.id }}
+                            onClick={(e) => e.stopPropagation()}
                             className="group/cta relative inline-flex items-center gap-3 overflow-hidden rounded-full px-8 py-3.5 shadow-glow-pink transition-all duration-300 hover:scale-[1.03] active:scale-95 sm:px-10 sm:py-4"
                           >
                             <span className="absolute inset-0 bg-gradient-love" />
                             <span className="absolute inset-0 bg-white/0 transition-opacity duration-300 group-hover/cta:bg-white/10" />
                             <span className="relative font-display text-sm font-bold tracking-wide text-white sm:text-base">
-                              Read &amp; Write more
+                              Read all reviews &amp; write yours
                             </span>
                             <ArrowRight className="relative h-5 w-5 text-white transition-transform group-hover/cta:translate-x-1" />
-                          </motion.button>
+                          </Link>
 
                           <motion.div
                             initial={{ opacity: 0, y: 8 }}
