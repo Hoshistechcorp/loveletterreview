@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Loader2, Lock, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Lock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/love-letters/Navbar";
@@ -11,13 +11,37 @@ export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
 });
 
+function scorePassword(pw: string): number {
+  if (!pw) return 0;
+  let s = 0;
+  if (pw.length >= 8) s++;
+  if (pw.length >= 12) s++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
+  if (/\d/.test(pw)) s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  return Math.min(s, 4);
+}
+
+const STRENGTH_META = [
+  { label: "Too weak", color: "bg-red-500", text: "text-red-500" },
+  { label: "Weak", color: "bg-orange-500", text: "text-orange-500" },
+  { label: "Fair", color: "bg-yellow-500", text: "text-yellow-500" },
+  { label: "Good", color: "bg-lime-500", text: "text-lime-500" },
+  { label: "Strong", color: "bg-emerald-500", text: "text-emerald-500" },
+];
+
 function ResetPasswordPage() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [hasRecovery, setHasRecovery] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const strength = useMemo(() => scorePassword(password), [password]);
+  const strengthMeta = STRENGTH_META[strength];
 
   useEffect(() => {
     // Supabase puts type=recovery in the URL hash when arriving from the email link.
