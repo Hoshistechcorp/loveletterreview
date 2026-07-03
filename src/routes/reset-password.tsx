@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Loader2, Lock, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Lock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/love-letters/Navbar";
@@ -11,13 +11,37 @@ export const Route = createFileRoute("/reset-password")({
   component: ResetPasswordPage,
 });
 
+function scorePassword(pw: string): number {
+  if (!pw) return 0;
+  let s = 0;
+  if (pw.length >= 8) s++;
+  if (pw.length >= 12) s++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
+  if (/\d/.test(pw)) s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  return Math.min(s, 4);
+}
+
+const STRENGTH_META = [
+  { label: "Too weak", color: "bg-red-500", text: "text-red-500" },
+  { label: "Weak", color: "bg-orange-500", text: "text-orange-500" },
+  { label: "Fair", color: "bg-yellow-500", text: "text-yellow-500" },
+  { label: "Good", color: "bg-lime-500", text: "text-lime-500" },
+  { label: "Strong", color: "bg-emerald-500", text: "text-emerald-500" },
+];
+
 function ResetPasswordPage() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [hasRecovery, setHasRecovery] = useState(false);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const strength = useMemo(() => scorePassword(password), [password]);
+  const strengthMeta = STRENGTH_META[strength];
 
   useEffect(() => {
     // Supabase puts type=recovery in the URL hash when arriving from the email link.
@@ -88,11 +112,11 @@ function ResetPasswordPage() {
                 from the sign-in page.
               </p>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-2.5">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
                   <input
-                    type="password"
+                    type={showPw ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -101,11 +125,41 @@ function ResetPasswordPage() {
                     placeholder="New password (min 6)"
                     className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((v) => !v)}
+                    aria-label={showPw ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-foreground/50 transition hover:text-foreground"
+                  >
+                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
+
+                {password.length > 0 && (
+                  <div className="px-1">
+                    <div className="flex gap-1">
+                      {[0, 1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className={`h-1 flex-1 rounded-full transition-colors ${
+                            i < strength ? strengthMeta.color : "bg-foreground/10"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <div className="mt-1.5 flex justify-between text-[10px] font-medium">
+                      <span className={strengthMeta.text}>{strengthMeta.label}</span>
+                      <span className="text-foreground/40">
+                        Use 8+ chars, mixed case, number & symbol
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
                   <input
-                    type="password"
+                    type={showConfirm ? "text" : "password"}
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     required
@@ -114,6 +168,14 @@ function ResetPasswordPage() {
                     placeholder="Confirm new password"
                     className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    aria-label={showConfirm ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-foreground/50 transition hover:text-foreground"
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
                 <button
                   type="submit"
