@@ -112,11 +112,11 @@ function ResetPasswordPage() {
                 from the sign-in page.
               </p>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-2.5">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
                   <input
-                    type="password"
+                    type={showPw ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -125,11 +125,41 @@ function ResetPasswordPage() {
                     placeholder="New password (min 6)"
                     className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((v) => !v)}
+                    aria-label={showPw ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-foreground/50 transition hover:text-foreground"
+                  >
+                    {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
+
+                {password.length > 0 && (
+                  <div className="px-1">
+                    <div className="flex gap-1">
+                      {[0, 1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className={`h-1 flex-1 rounded-full transition-colors ${
+                            i < strength ? strengthMeta.color : "bg-foreground/10"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <div className="mt-1.5 flex justify-between text-[10px] font-medium">
+                      <span className={strengthMeta.text}>{strengthMeta.label}</span>
+                      <span className="text-foreground/40">
+                        Use 8+ chars, mixed case, number & symbol
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
                   <input
-                    type="password"
+                    type={showConfirm ? "text" : "password"}
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     required
@@ -138,6 +168,14 @@ function ResetPasswordPage() {
                     placeholder="Confirm new password"
                     className="w-full rounded-full border border-foreground/15 bg-foreground/[0.03] px-10 py-3 text-sm outline-none transition focus:border-mint/60"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    aria-label={showConfirm ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-foreground/50 transition hover:text-foreground"
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
                 <button
                   type="submit"
