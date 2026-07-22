@@ -6,7 +6,7 @@ import { Hero } from "@/components/love-letters/Hero";
 import { PlaceFoundCard } from "@/components/love-letters/PlaceFoundCard";
 import { WriteLetterModal } from "@/components/love-letters/WriteLetterModal";
 import { AuthWallModal } from "@/components/love-letters/AuthWallModal";
-import { WallOfLove, type WallFilter, type WallTime } from "@/components/love-letters/WallOfLove";
+import { Link } from "@tanstack/react-router";
 import { OwnerTeaserBanner } from "@/components/love-letters/OwnerTeaserBanner";
 import { Footer } from "@/components/love-letters/Footer";
 import { CategoryTabs, type HomeCategory } from "@/components/love-letters/CategoryTabs";
@@ -15,23 +15,7 @@ import { TopVenuesGrid } from "@/components/love-letters/TopVenuesGrid";
 import { mockSearchVenue, type Venue } from "@/lib/love-letters/mockVenues";
 import { addLetter, getUser, signIn } from "@/lib/love-letters/localStore";
 
-const VALID_FILTERS: WallFilter[] = ["top", "most", "new"];
-const VALID_TIMES: WallTime[] = ["today", "week", "month", "all"];
-
 export const Route = createFileRoute("/")({
-  validateSearch: (
-    search: Record<string, unknown>,
-  ): { wallFilter: WallFilter; wallLocation: string; wallTime: WallTime } => {
-    const f = search.wallFilter;
-    const t = search.wallTime;
-    const loc = search.wallLocation;
-    return {
-      wallFilter: VALID_FILTERS.includes(f as WallFilter) ? (f as WallFilter) : "top",
-      wallTime: VALID_TIMES.includes(t as WallTime) ? (t as WallTime) : "all",
-      wallLocation: typeof loc === "string" ? loc : "",
-    };
-  },
-
   head: () => ({
     meta: [
       { title: "iBloov — Discover places worth loving 💌" },
@@ -52,7 +36,6 @@ export const Route = createFileRoute("/")({
 });
 
 function LoveLettersPage() {
-  const { wallFilter, wallLocation, wallTime } = Route.useSearch();
   const navigate = useNavigate();
 
   const [isSearching, setIsSearching] = useState(false);
@@ -123,33 +106,26 @@ function LoveLettersPage() {
         <TrendingDestinations />
         <TopVenuesGrid category={category} />
 
-        <div id="wall">
-          <WallOfLove
-            filter={wallFilter}
-            onFilterChange={(f) =>
-              navigate({
-                to: "/",
-                search: { wallFilter: f, wallLocation, wallTime },
-                replace: true,
-              })
-            }
-            location={wallLocation}
-            onLocationChange={(v) =>
-              navigate({
-                to: "/",
-                search: { wallFilter, wallLocation: v, wallTime },
-                replace: true,
-              })
-            }
-            time={wallTime}
-            onTimeChange={(t) =>
-              navigate({
-                to: "/",
-                search: { wallFilter, wallLocation, wallTime: t },
-                replace: true,
-              })
-            }
-          />
+        <div className="mx-auto max-w-5xl px-4 pb-12">
+          <Link
+            to="/wall"
+            className="group flex items-center justify-between gap-4 rounded-3xl border border-foreground/10 bg-gradient-to-r from-neon-pink/10 via-transparent to-mint/10 p-5 transition hover:shadow-glow-pink"
+          >
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-neon-pink">
+                Wall of Love
+              </p>
+              <h3 className="mt-1 font-display text-lg font-bold sm:text-xl">
+                See every place with a Love Letter →
+              </h3>
+              <p className="mt-0.5 text-xs text-foreground/60">
+                An endless feed of restaurants, hotels, and destinations travelers adore.
+              </p>
+            </div>
+            <span className="hidden shrink-0 rounded-full bg-gradient-love px-4 py-2 text-xs font-bold text-white shadow-glow-pink transition group-hover:scale-105 sm:inline-block">
+              Explore the wall
+            </span>
+          </Link>
         </div>
 
         <OwnerTeaserBanner />

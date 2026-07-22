@@ -773,8 +773,64 @@ function Dashboard({
   );
 }
 
+const READ_KEY = "ibloov.biz.read"; // { [venueId]: string[] letterIds }
+
+function loadRead(): Record<string, string[]> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(READ_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+function saveRead(r: Record<string, string[]>) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(READ_KEY, JSON.stringify(r));
+}
+
 function InboxTab({ venue }: { venue: TrendingVenue }) {
   const letters: Review[] = venue.reviews;
+  const [readMap, setReadMap] = useState<Record<string, string[]>>({});
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [replyDraft, setReplyDraft] = useState("");
+  const [sentReplies, setSentReplies] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setReadMap(loadRead());
+  }, []);
+
+  const readIds = readMap[venue.id] ?? [];
+  const unread = letters.filter((r) => !readIds.includes(r.id));
+
+  function markRead(letterId: string) {
+    const cur = readMap[venue.id] ?? [];
+    if (cur.includes(letterId)) return;
+    const next = { ...readMap, [venue.id]: [...cur, letterId] };
+    setReadMap(next);
+    saveRead(next);
+  }
+  function markAllRead() {
+    const next = { ...readMap, [venue.id]: letters.map((l) => l.id) };
+    setReadMap(next);
+    saveRead(next);
+    toast.success("All letters marked as read.");
+  }
+  function toggleOpen(id: string) {
+    if (openId === id) {
+      setOpenId(null);
+    } else {
+      setOpenId(id);
+      setReplyDraft("");
+      markRead(id);
+    }
+  }
+  function sendReply(id: string) {
+    if (!replyDraft.trim()) return;
+    setSentReplies({ ...sentReplies, [id]: replyDraft.trim() });
+    setReplyDraft("");
+    toast.success("Reply sent privately to the traveler.");
+  }
+
   if (letters.length === 0) {
     return (
       <div className="glass rounded-3xl p-8 text-center">
@@ -786,36 +842,140 @@ function InboxTab({ venue }: { venue: TrendingVenue }) {
       </div>
     );
   }
+
   return (
-    <ul className="flex flex-col gap-2.5">
-      {letters.map((r, i) => (
-        <motion.li
-          key={r.id}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: i * 0.04 }}
-          className="glass rounded-2xl p-4"
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-mint text-xs font-bold text-white">
-              {r.initials}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span className="text-sm font-semibold">{r.author}</span>
-                <span className="text-[11px] text-foreground/40">·</span>
-                <span className="text-[11px] text-foreground/50">{r.visited}</span>
-                <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-neon-pink/10 px-2 py-0.5 text-[11px] font-bold text-neon-pink">
-                  <Heart className="h-3 w-3 fill-current" /> {r.rating.toFixed(1)}
-                </span>
-              </div>
-              <h4 className="mt-1 font-display text-base font-bold">{r.title}</h4>
-              <p className="mt-0.5 text-sm leading-relaxed text-foreground/75">{r.body}</p>
-            </div>
+    <div className="space-y-3">
+      <div className="glass flex items-center justify-between rounded-2xl px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-gradient-love px-2 text-xs font-bold text-white shadow-glow-pink">
+            {unread.length}
+          </span>
+          <div>
+            <p className="text-sm font-semibold">
+              {unread.length === 0 ? "All caught up" : `${unread.length} unread Love Letter${unread.length === 1 ? "" : "s"}`}
+            </p>
+            <p className="text-[11px] text-foreground/55">
+              {letters.length} total · click a letter to read & reply
+            </p>
           </div>
-        </motion.li>
-      ))}
-    </ul>
+        </div>
+        {unread.length > 0 && (
+          <button
+            onClick={markAllRead}
+            className="rounded-full border border-foreground/15 bg-foreground/[0.03] px-3 py-1.5 text-xs font-semibold text-foreground/70 transition hover:border-mint/40 hover:text-foreground"
+          >
+            Mark all read
+          </button>
+        )}
+      </div>
+
+      <ul className="flex flex-col gap-2.5">
+        {letters.map((r, i) => {
+          const isUnread = !readIds.includes(r.id);
+          const isOpen = openId === r.id;
+          const reply = sentReplies[r.id];
+          return (
+            <motion.li
+              key={r.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: i * 0.04 }}
+              className={`glass overflow-hidden rounded-2xl transition ${
+                isUnread ? "ring-2 ring-neon-pink/30" : ""
+              }`}
+            >
+              <button
+                onClick={() => toggleOpen(r.id)}
+                className="flex w-full items-start gap-3 p-4 text-left"
+              >
+                <div className="relative">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-mint text-xs font-bold text-white">
+                    {r.initials}
+                  </div>
+                  {isUnread && (
+                    <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-background bg-neon-pink" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <span className="text-sm font-semibold">{r.author}</span>
+                    <span className="text-[11px] text-foreground/40">·</span>
+                    <span className="text-[11px] text-foreground/50">{r.visited}</span>
+                    {isUnread && (
+                      <span className="rounded-full bg-neon-pink/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-neon-pink">
+                        New
+                      </span>
+                    )}
+                    <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-neon-pink/10 px-2 py-0.5 text-[11px] font-bold text-neon-pink">
+                      <Heart className="h-3 w-3 fill-current" /> {r.rating.toFixed(1)}
+                    </span>
+                  </div>
+                  <h4 className="mt-1 font-display text-base font-bold">{r.title}</h4>
+                  <p
+                    className={`mt-0.5 text-sm leading-relaxed text-foreground/75 ${
+                      isOpen ? "" : "line-clamp-2"
+                    }`}
+                  >
+                    {r.body}
+                  </p>
+                </div>
+              </button>
+
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="border-t border-foreground/5 bg-foreground/[0.015] px-4 py-3"
+                  >
+                    {reply ? (
+                      <div className="rounded-xl border border-mint/30 bg-mint/5 p-3">
+                        <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-mint/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-mint">
+                          <Check className="h-3 w-3" /> Reply sent
+                        </div>
+                        <p className="text-sm italic text-foreground/80">“{reply}”</p>
+                      </div>
+                    ) : (
+                      <>
+                        <textarea
+                          value={replyDraft}
+                          onChange={(e) => setReplyDraft(e.target.value.slice(0, 240))}
+                          rows={2}
+                          placeholder={`Thank ${r.author.split(" ")[0]} for the kind words…`}
+                          className="w-full resize-none rounded-xl border border-foreground/10 bg-background/60 p-2.5 text-sm outline-none focus:border-mint/60"
+                        />
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-[11px] text-foreground/45">
+                            Private reply to the traveler · {replyDraft.length}/240
+                          </span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => markRead(r.id)}
+                              className="rounded-full border border-foreground/15 px-3 py-1.5 text-xs font-semibold text-foreground/65 hover:border-mint/40 hover:text-foreground"
+                            >
+                              Mark read
+                            </button>
+                            <button
+                              onClick={() => sendReply(r.id)}
+                              disabled={!replyDraft.trim()}
+                              className="inline-flex items-center gap-1.5 rounded-full bg-gradient-love px-3.5 py-1.5 text-xs font-bold text-white shadow-glow-pink transition hover:scale-[1.03] disabled:opacity-50 disabled:hover:scale-100"
+                            >
+                              <Send className="h-3.5 w-3.5" /> Send reply
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

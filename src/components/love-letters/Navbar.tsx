@@ -1,5 +1,5 @@
 import logo from "@/assets/ibloov-logo.jpeg";
-import { Bookmark, User as UserIcon } from "lucide-react";
+import { Heart, User as UserIcon } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { getUser, useLocalStore } from "@/lib/love-letters/localStore";
 
@@ -14,12 +14,12 @@ export function Navbar() {
         </Link>
         <div className="flex items-center gap-2">
           <Link
-            to="/saved"
-            className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-foreground/70 hover:border-mint/40 hover:text-foreground"
-            aria-label="Saved businesses"
+            to="/wall"
+            className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-foreground/70 hover:border-neon-pink/40 hover:text-foreground"
+            aria-label="Wall of Love"
           >
-            <Bookmark className="h-4 w-4" />
-            <span className="hidden sm:inline">Saved</span>
+            <Heart className="h-4 w-4 text-neon-pink" />
+            <span className="hidden sm:inline">Wall of Love</span>
           </Link>
           <Link
             to="/business"
