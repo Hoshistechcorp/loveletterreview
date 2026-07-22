@@ -96,6 +96,8 @@ function BusinessPage() {
   const [authUser, setAuthUser] = useState<{ id: string; email: string } | null>(null);
   const [session, setSession] = useState<OwnerSession | null>(null);
   const [bootstrapping, setBootstrapping] = useState(true);
+  const [editing, setEditing] = useState(false);
+
 
   useEffect(() => {
     let active = true;
