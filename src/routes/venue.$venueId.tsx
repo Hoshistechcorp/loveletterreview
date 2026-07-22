@@ -317,15 +317,28 @@ function VenuePage() {
               Share what made it special. Your Love Letter joins the public Wall and
               helps other travelers discover their next favorite place.
             </p>
-            <Link
-              to="/"
+            <button
+              onClick={() => setWriteOpen(true)}
               className="mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-love px-5 py-2.5 text-sm font-bold text-white shadow-glow-pink transition hover:scale-[1.03] active:scale-95"
             >
               <PenLine className="h-4 w-4" /> Write a Love Letter
-            </Link>
+            </button>
           </div>
         </div>
       </div>
+
+      <WriteLetterModal
+        open={writeOpen}
+        venue={venue}
+        onClose={() => setWriteOpen(false)}
+        onSubmit={handleSubmit}
+      />
+      <AuthWallModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onAuthed={handleAuthed}
+      />
+      <SuccessOverlay open={successOpen} onClose={() => setSuccessOpen(false)} />
 
       <Footer />
     </div>
