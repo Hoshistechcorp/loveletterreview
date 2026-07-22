@@ -491,19 +491,25 @@ function slugify(s: string) {
 function OnboardingStep({
   email,
   suggested,
+  initial,
   onSubmit,
+  onCancel,
 }: {
   email: string;
   suggested: TrendingVenue | null;
+  initial?: OwnerBusiness | null;
   onSubmit: (b: OwnerBusiness) => void;
+  onCancel?: () => void;
 }) {
-  const [name, setName] = useState(suggested?.name ?? "");
-  const [city, setCity] = useState(suggested?.city ?? "");
-  const [country, setCountry] = useState(suggested?.country ?? "");
-  const [category, setCategory] = useState(suggested?.category ?? CATEGORIES[0]);
-  const [website, setWebsite] = useState("");
-  const [address, setAddress] = useState("");
-  const [description, setDescription] = useState(suggested?.excerpt ?? "");
+  const isEdit = !!initial;
+  const [name, setName] = useState(initial?.businessName ?? suggested?.name ?? "");
+  const [city, setCity] = useState(initial?.city ?? suggested?.city ?? "");
+  const [country, setCountry] = useState(initial?.country ?? suggested?.country ?? "");
+  const [category, setCategory] = useState(initial?.category ?? suggested?.category ?? CATEGORIES[0]);
+  const [website, setWebsite] = useState(initial?.website ?? "");
+  const [address, setAddress] = useState(initial?.address ?? "");
+  const [description, setDescription] = useState(initial?.description ?? suggested?.excerpt ?? "");
+
 
   const canSubmit =
     name.trim().length >= 2 &&
