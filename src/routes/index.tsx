@@ -9,10 +9,11 @@ import { AuthWallModal } from "@/components/love-letters/AuthWallModal";
 import { WallOfLove, type WallFilter, type WallTime } from "@/components/love-letters/WallOfLove";
 import { OwnerTeaserBanner } from "@/components/love-letters/OwnerTeaserBanner";
 import { Footer } from "@/components/love-letters/Footer";
-import {
-  mockSearchVenue,
-  type Venue,
-} from "@/lib/love-letters/mockVenues";
+import { CategoryTabs, type HomeCategory } from "@/components/love-letters/CategoryTabs";
+import { TrendingDestinations } from "@/components/love-letters/TrendingDestinations";
+import { TopVenuesGrid } from "@/components/love-letters/TopVenuesGrid";
+import { mockSearchVenue, type Venue } from "@/lib/love-letters/mockVenues";
+import { addLetter, getUser, signIn } from "@/lib/love-letters/localStore";
 
 const VALID_FILTERS: WallFilter[] = ["top", "most", "new"];
 const VALID_TIMES: WallTime[] = ["today", "week", "month", "all"];
@@ -33,17 +34,16 @@ export const Route = createFileRoute("/")({
 
   head: () => ({
     meta: [
-      { title: "iBloov Love Letters — Send love, not hate 💌" },
+      { title: "iBloov — Discover places worth loving 💌" },
       {
         name: "description",
         content:
-          "The world has enough 1-star hate. Write a Love Letter (up to 100 words) to your favorite restaurants, lounges, and venues.",
+          "Discover top-rated restaurants, hotels, and destinations — then leave a Love Letter to the ones you adore.",
       },
-      { property: "og:title", content: "iBloov Love Letters — Send love, not hate 💌" },
+      { property: "og:title", content: "iBloov — Discover places worth loving 💌" },
       {
         property: "og:description",
-        content:
-          "Don't leave a review. Leave a Love Letter. iBloov is the world's first life & leisure OS for shared joy.",
+        content: "Restaurants, hotels, and destinations loved by real people. Send love, not hate.",
       },
       { property: "og:type", content: "website" },
     ],
@@ -53,14 +53,14 @@ export const Route = createFileRoute("/")({
 
 function LoveLettersPage() {
   const { wallFilter, wallLocation, wallTime } = Route.useSearch();
-
   const navigate = useNavigate();
 
   const [isSearching, setIsSearching] = useState(false);
   const [venue, setVenue] = useState<Venue | null>(null);
   const [writeOpen, setWriteOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const [isAuthed, setIsAuthed] = useState(false);
+  const [category, setCategory] = useState<HomeCategory>("All");
+  const [pendingDraft, setPendingDraft] = useState<{ rating: number; message: string } | null>(null);
 
   const handleSearch = (name: string, city: string) => {
     setIsSearching(true);
@@ -71,28 +71,39 @@ function LoveLettersPage() {
     }, 900);
   };
 
-  const completeSend = () => {
-    toast.success("Love Letter sent 💌", {
-      description: venue
-        ? `Your note is on its way to ${venue.name}.`
-        : "Your note is on its way.",
+  const finalize = (rating: number, message: string) => {
+    if (!venue) return;
+    addLetter({
+      venueId: venue.id,
+      venueName: venue.name,
+      city: venue.city,
+      rating,
+      message,
     });
-    navigate({ to: "/saved", search: { tab: "unlocked" } });
+    toast.success("Love Letter sent 💌", {
+      description: `Your note is on its way to ${venue.name}.`,
+    });
+    navigate({ to: "/profile", search: { tab: "letters" } });
   };
 
-  const handleSubmit = (_rating: number, _message: string) => {
+  const handleSubmit = (rating: number, message: string) => {
     setWriteOpen(false);
-    if (!isAuthed) {
+    if (!getUser()) {
+      setPendingDraft({ rating, message });
       window.setTimeout(() => setAuthOpen(true), 150);
     } else {
-      window.setTimeout(completeSend, 150);
+      window.setTimeout(() => finalize(rating, message), 150);
     }
   };
 
   const handleAuthed = () => {
-    setIsAuthed(true);
     setAuthOpen(false);
-    window.setTimeout(completeSend, 200);
+    if (!getUser()) signIn("guest@ibloov.com", "Guest");
+    if (pendingDraft) {
+      const draft = pendingDraft;
+      setPendingDraft(null);
+      window.setTimeout(() => finalize(draft.rating, draft.message), 200);
+    }
   };
 
   return (
@@ -103,38 +114,43 @@ function LoveLettersPage() {
         <Hero onSearch={handleSearch} isSearching={isSearching} />
 
         {venue && (
-          <div className="pb-12">
+          <div className="pb-8">
             <PlaceFoundCard venue={venue} onWrite={() => setWriteOpen(true)} />
           </div>
         )}
 
-        <WallOfLove
-          filter={wallFilter}
-          onFilterChange={(f) =>
-            navigate({
-              to: "/",
-              search: { wallFilter: f, wallLocation, wallTime },
-              replace: true,
-            })
-          }
-          location={wallLocation}
-          onLocationChange={(v) =>
-            navigate({
-              to: "/",
-              search: { wallFilter, wallLocation: v, wallTime },
-              replace: true,
-            })
-          }
-          time={wallTime}
-          onTimeChange={(t) =>
-            navigate({
-              to: "/",
-              search: { wallFilter, wallLocation, wallTime: t },
-              replace: true,
-            })
-          }
-        />
+        <CategoryTabs value={category} onChange={setCategory} />
+        <TrendingDestinations />
+        <TopVenuesGrid category={category} />
 
+        <div id="wall">
+          <WallOfLove
+            filter={wallFilter}
+            onFilterChange={(f) =>
+              navigate({
+                to: "/",
+                search: { wallFilter: f, wallLocation, wallTime },
+                replace: true,
+              })
+            }
+            location={wallLocation}
+            onLocationChange={(v) =>
+              navigate({
+                to: "/",
+                search: { wallFilter, wallLocation: v, wallTime },
+                replace: true,
+              })
+            }
+            time={wallTime}
+            onTimeChange={(t) =>
+              navigate({
+                to: "/",
+                search: { wallFilter, wallLocation, wallTime: t },
+                replace: true,
+              })
+            }
+          />
+        </div>
 
         <OwnerTeaserBanner />
       </main>
