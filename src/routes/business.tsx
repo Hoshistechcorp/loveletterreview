@@ -544,15 +544,16 @@ function OnboardingStep({
     >
       <div className="mb-5 text-center">
         <span className="inline-flex items-center gap-1 rounded-full border border-mint/30 bg-mint/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-mint">
-          <Building2 className="h-3 w-3" /> List your business
+          <Building2 className="h-3 w-3" /> {isEdit ? "Edit your business" : "List your business"}
         </span>
         <h1 className="mt-3 font-display text-2xl font-bold sm:text-3xl">
-          Tell us about your business
+          {isEdit ? "Update your business details" : "Tell us about your business"}
         </h1>
         <p className="mt-1 text-sm text-foreground/60">
           Signed in as <span className="font-semibold text-foreground/80">{email}</span>. These details power your Wall of Love profile.
         </p>
       </div>
+
 
       <form onSubmit={handleSubmit} className="glass space-y-3 rounded-3xl p-5 sm:p-7">
         <Field label="Business name" required>
