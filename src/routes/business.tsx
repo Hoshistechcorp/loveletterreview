@@ -916,10 +916,12 @@ function InboxTab({ venue }: { venue: TrendingVenue }) {
 
   if (letters.length === 0) {
     return (
-      <div className="glass rounded-3xl p-8 text-center">
-        <Heart className="mx-auto h-8 w-8 text-neon-pink" />
-        <h3 className="mt-2 font-display text-lg font-bold">No letters yet</h3>
-        <p className="mt-1 text-sm text-foreground/60">
+      <div className="rounded-3xl border border-dashed border-foreground/15 bg-card p-10 text-center">
+        <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-neon-pink/10">
+          <Heart className="h-5 w-5 text-neon-pink" />
+        </div>
+        <h3 className="mt-3 font-display text-lg font-bold">Your inbox is empty</h3>
+        <p className="mx-auto mt-1 max-w-sm text-sm text-foreground/60">
           Share your iBloov page so travelers can leave Love Letters about {venue.name}.
         </p>
       </div>
