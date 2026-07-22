@@ -200,13 +200,21 @@ function BusinessPage() {
                 key="onboarding"
                 email={authUser.email}
                 suggested={venueFromLink}
+                initial={editing && session ? session : null}
                 onSubmit={handleOnboard}
+                onCancel={editing && session ? () => { setEditing(false); setStep("dashboard"); } : undefined}
               />
             )}
             {step === "dashboard" && session && (
-              <Dashboard key="dashboard" session={session} onSignOut={handleSignOut} />
+              <Dashboard
+                key="dashboard"
+                session={session}
+                onSignOut={handleSignOut}
+                onEdit={() => { setEditing(true); setStep("onboarding"); }}
+              />
             )}
           </AnimatePresence>
+
         )}
       </div>
       <Footer />
