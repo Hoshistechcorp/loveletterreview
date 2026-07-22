@@ -65,10 +65,14 @@ function LoveLettersPage() {
       rating,
       message,
     });
-    toast.success("Love Letter sent 💌", {
-      description: `Your note is on its way to ${venue.name}.`,
-    });
-    navigate({ to: "/profile", search: { tab: "letters" } });
+    setSuccessOpen(true);
+    window.setTimeout(() => {
+      setSuccessOpen(false);
+      toast.success("Love Letter sent 💌", {
+        description: `Your note is on its way to ${venue.name}.`,
+      });
+      navigate({ to: "/profile", search: { tab: "letters" } });
+    }, 1800);
   };
 
   const handleSubmit = (rating: number, message: string) => {
