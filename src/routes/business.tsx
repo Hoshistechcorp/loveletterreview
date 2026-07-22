@@ -928,14 +928,22 @@ function InboxTab({ venue }: { venue: TrendingVenue }) {
 
   return (
     <div className="space-y-3">
-      <div className="glass flex items-center justify-between rounded-2xl px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-gradient-love px-2 text-xs font-bold text-white shadow-glow-pink">
+      <div className="flex items-center justify-between rounded-2xl border border-foreground/8 bg-card px-4 py-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span
+            className={`inline-flex h-9 min-w-9 items-center justify-center rounded-xl px-2 text-sm font-bold ${
+              unread.length > 0
+                ? "bg-neon-pink/10 text-neon-pink"
+                : "bg-mint/10 text-mint"
+            }`}
+          >
             {unread.length}
           </span>
           <div>
             <p className="text-sm font-semibold">
-              {unread.length === 0 ? "All caught up" : `${unread.length} unread Love Letter${unread.length === 1 ? "" : "s"}`}
+              {unread.length === 0
+                ? "All caught up"
+                : `${unread.length} unread Love Letter${unread.length === 1 ? "" : "s"}`}
             </p>
             <p className="text-[11px] text-foreground/55">
               {letters.length} total · click a letter to read & reply
@@ -945,7 +953,7 @@ function InboxTab({ venue }: { venue: TrendingVenue }) {
         {unread.length > 0 && (
           <button
             onClick={markAllRead}
-            className="rounded-full border border-foreground/15 bg-foreground/[0.03] px-3 py-1.5 text-xs font-semibold text-foreground/70 transition hover:border-mint/40 hover:text-foreground"
+            className="rounded-full border border-foreground/15 bg-foreground/[0.02] px-3 py-1.5 text-xs font-semibold text-foreground/70 transition hover:border-mint/40 hover:text-foreground"
           >
             Mark all read
           </button>
