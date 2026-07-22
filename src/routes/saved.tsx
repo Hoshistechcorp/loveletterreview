@@ -1,38 +1,35 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Heart, MapPin } from "lucide-react";
+import { Bookmark, Heart, MapPin } from "lucide-react";
 import { Navbar } from "@/components/love-letters/Navbar";
 import { Footer } from "@/components/love-letters/Footer";
 import { EmptyState } from "@/components/love-letters/EmptyState";
-import { WallSkeleton } from "@/components/love-letters/WallSkeleton";
-import {
-  savedLettersMock,
-  type SavedLetter,
-} from "@/lib/love-letters/mockVenues";
+import { trendingVenues } from "@/lib/love-letters/mockVenues";
+import { getSavedVenueIds, toggleSaved, useLocalStore } from "@/lib/love-letters/localStore";
 
-type Tab = "newest" | "loved" | "unlocked";
-
+type Tab = "all" | "recent" | "top";
 const TABS: { id: Tab; label: string }[] = [
-  { id: "newest", label: "Newest" },
-  { id: "loved", label: "Most loved" },
-  { id: "unlocked", label: "Recently unlocked" },
+  { id: "all", label: "All" },
+  { id: "recent", label: "Recently added" },
+  { id: "top", label: "Top rated" },
 ];
-
-const VALID_TABS: Tab[] = ["newest", "loved", "unlocked"];
+const VALID_TABS: Tab[] = ["all", "recent", "top"];
 
 export const Route = createFileRoute("/saved")({
-  validateSearch: (search: Record<string, unknown>): { tab: Tab } => {
-    const t = search.tab;
-    return { tab: VALID_TABS.includes(t as Tab) ? (t as Tab) : "newest" };
-  },
+  validateSearch: (search: Record<string, unknown>): { tab: Tab } => ({
+    tab: VALID_TABS.includes(search.tab as Tab) ? (search.tab as Tab) : "all",
+  }),
   head: () => ({
     meta: [
-      { title: "Saved — iBloov Love Letters" },
+      { title: "Saved businesses — iBloov" },
       {
         name: "description",
-        content: "Your saved Love Letters on iBloov.",
+        content: "Businesses you've saved on iBloov — restaurants, hotels, and destinations you love.",
       },
+      { property: "og:title", content: "Saved businesses — iBloov" },
+      { property: "og:description", content: "Your bookmarked businesses on iBloov." },
+      { property: "og:type", content: "website" },
     ],
   }),
   component: SavedPage,
@@ -41,40 +38,32 @@ export const Route = createFileRoute("/saved")({
 function SavedPage() {
   const { tab } = Route.useSearch();
   const navigate = useNavigate();
-  const setTab = (t: Tab) =>
-    navigate({ to: "/saved", search: { tab: t }, replace: true });
+  const savedIds = useLocalStore(getSavedVenueIds);
+  const setTab = (t: Tab) => navigate({ to: "/saved", search: { tab: t }, replace: true });
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [savedLetters, setSavedLetters] = useState<SavedLetter[]>([]);
-
-  useEffect(() => {
-    const t = window.setTimeout(() => {
-      setSavedLetters(savedLettersMock);
-      setIsLoading(false);
-    }, 700);
-    return () => window.clearTimeout(t);
-  }, []);
-
-  const sorted = useMemo(() => {
-    const copy = [...savedLetters];
-    if (tab === "newest") return copy.sort((a, b) => b.savedAt - a.savedAt);
-    if (tab === "loved") return copy.sort((a, b) => b.loveCount - a.loveCount);
-    return copy.sort((a, b) => b.unlockedAt - a.unlockedAt);
-  }, [savedLetters, tab]);
+  const items = useMemo(() => {
+    const list = trendingVenues.filter((v) => savedIds.includes(v.id));
+    if (tab === "top") return [...list].sort((a, b) => b.rating - a.rating);
+    if (tab === "recent") {
+      // preserve savedIds order (last saved appended last)
+      return list.sort(
+        (a, b) => savedIds.indexOf(b.id) - savedIds.indexOf(a.id),
+      );
+    }
+    return list;
+  }, [savedIds, tab]);
 
   return (
     <div className="min-h-screen">
       <Navbar />
-
-      <main className="mx-auto max-w-6xl px-4 py-10">
+      <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-5">
-          <h1 className="font-display text-3xl font-bold">Saved</h1>
+          <h1 className="font-display text-3xl font-bold">Saved businesses</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Love Letters you have bookmarked.
+            Places you've bookmarked to visit or revisit.
           </p>
         </div>
 
-        {/* Tabs */}
         <div className="mb-6 flex flex-wrap gap-2">
           {TABS.map((t) => {
             const active = tab === t.id;
@@ -84,8 +73,8 @@ function SavedPage() {
                 onClick={() => setTab(t.id)}
                 className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
                   active
-                    ? "border-transparent bg-gradient-love text-white shadow-glow-pink"
-                    : "border-foreground/15 bg-foreground/[0.03] text-foreground/70 hover:border-mint/40 hover:text-foreground"
+                    ? "border-transparent bg-foreground text-background"
+                    : "border-black/10 bg-white text-foreground/70 hover:border-mint/40 hover:text-foreground"
                 }`}
               >
                 {t.label}
@@ -94,66 +83,62 @@ function SavedPage() {
           })}
         </div>
 
-        {isLoading ? (
-          <WallSkeleton count={3} />
-        ) : sorted.length === 0 ? (
-          <div className="glass rounded-3xl">
+        {items.length === 0 ? (
+          <div className="rounded-2xl border border-black/10 bg-white">
             <EmptyState
-              title="No saved letters yet"
-              subtitle="Explore Love Letters and save your favorites to read them again later."
+              title="No saved businesses yet"
+              subtitle="Tap the bookmark on any business to keep it here."
               ctaLabel="Explore"
               ctaHref="/"
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {sorted.map((l, i) => (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((v, i) => (
               <motion.div
-                key={l.id}
-                initial={{ opacity: 0, y: 12 }}
+                key={v.id}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: i * 0.05 }}
-                className="glass rounded-2xl p-4 transition hover:shadow-glow-pink"
+                transition={{ delay: i * 0.04 }}
+                className="group relative overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm transition hover:shadow-glow-mint"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="truncate font-display text-base font-bold">
-                      {l.venueName}
-                    </h3>
-                    <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3 text-mint" />
-                      {l.city}
+                <Link to="/venue/$venueId" params={{ venueId: v.id }} className="block">
+                  <div className="relative h-36 w-full overflow-hidden">
+                    <img
+                      src={v.photo}
+                      alt={v.name}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                  <div className="p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-display text-base font-bold">{v.name}</h3>
+                      <div className="flex items-center gap-1 text-xs font-bold text-mint">
+                        <Heart className="h-3 w-3 fill-current" />
+                        {v.rating.toFixed(1)}
+                      </div>
+                    </div>
+                    <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+                      <MapPin className="h-3 w-3 text-neon-pink" />
+                      {v.city}
                     </p>
+                    <p className="mt-2 line-clamp-2 text-xs text-foreground/70">“{v.excerpt}”</p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1 text-xs font-semibold">
-                    <Heart className="h-3 w-3 fill-neon-pink text-neon-pink" />
-                    {l.rating.toFixed(1)}
-                  </div>
-                </div>
-                <p className="mt-3 line-clamp-2 font-display text-sm italic text-foreground/80">
-                  <span className="font-semibold text-mint">
-                    I love this place because
-                  </span>{" "}
-                  {l.excerpt}
-                </p>
-                <div className="mt-3 flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
-                  <span>{l.loveCount} letters</span>
-                  <span>{relativeDays(tab === "unlocked" ? l.unlockedAt : l.savedAt)}</span>
-                </div>
+                </Link>
+                <button
+                  aria-label="Remove save"
+                  onClick={() => toggleSaved(v.id)}
+                  className="absolute right-2 top-2 rounded-full bg-white/95 p-1.5 text-mint shadow"
+                >
+                  <Bookmark className="h-4 w-4 fill-current" />
+                </button>
               </motion.div>
             ))}
           </div>
         )}
       </main>
-
       <Footer />
     </div>
   );
-}
-
-function relativeDays(ts: number): string {
-  const days = Math.max(0, Math.floor((Date.now() - ts) / (24 * 60 * 60 * 1000)));
-  if (days === 0) return "today";
-  if (days === 1) return "1 day ago";
-  return `${days} days ago`;
 }
