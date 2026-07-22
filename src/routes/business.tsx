@@ -649,13 +649,25 @@ function OnboardingStep({
           </div>
         </Field>
 
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-love px-4 py-3 text-sm font-bold text-white shadow-glow-pink transition hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-        >
-          Create my business profile <ArrowRight className="h-4 w-4" />
-        </button>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-foreground/15 bg-foreground/[0.02] px-4 py-3 text-sm font-semibold text-foreground/70 transition hover:border-foreground/30 hover:text-foreground sm:w-auto sm:px-6"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-love px-4 py-3 text-sm font-bold text-white shadow-glow-pink transition hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+          >
+            {isEdit ? "Save changes" : "Create my business profile"} <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+
       </form>
     </motion.div>
   );
