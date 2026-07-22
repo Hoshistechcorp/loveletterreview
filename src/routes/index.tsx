@@ -44,6 +44,7 @@ function LoveLettersPage() {
   const [writeOpen, setWriteOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [category, setCategory] = useState<HomeCategory>("All");
+  const [successOpen, setSuccessOpen] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<{ rating: number; message: string } | null>(null);
 
   const handleSearch = (name: string, city: string) => {
