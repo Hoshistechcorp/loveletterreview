@@ -150,6 +150,7 @@ function LoveLettersPage() {
         onClose={() => setAuthOpen(false)}
         onAuthed={handleAuthed}
       />
+      <SuccessOverlay open={successOpen} onClose={() => setSuccessOpen(false)} />
     </div>
   );
 }
