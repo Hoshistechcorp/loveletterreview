@@ -6,7 +6,7 @@ import { Hero } from "@/components/love-letters/Hero";
 import { PlaceFoundCard } from "@/components/love-letters/PlaceFoundCard";
 import { WriteLetterModal } from "@/components/love-letters/WriteLetterModal";
 import { AuthWallModal } from "@/components/love-letters/AuthWallModal";
-import { WallOfLove, type WallFilter, type WallTime } from "@/components/love-letters/WallOfLove";
+import { Link } from "@tanstack/react-router";
 import { OwnerTeaserBanner } from "@/components/love-letters/OwnerTeaserBanner";
 import { Footer } from "@/components/love-letters/Footer";
 import { CategoryTabs, type HomeCategory } from "@/components/love-letters/CategoryTabs";
@@ -15,23 +15,7 @@ import { TopVenuesGrid } from "@/components/love-letters/TopVenuesGrid";
 import { mockSearchVenue, type Venue } from "@/lib/love-letters/mockVenues";
 import { addLetter, getUser, signIn } from "@/lib/love-letters/localStore";
 
-const VALID_FILTERS: WallFilter[] = ["top", "most", "new"];
-const VALID_TIMES: WallTime[] = ["today", "week", "month", "all"];
-
 export const Route = createFileRoute("/")({
-  validateSearch: (
-    search: Record<string, unknown>,
-  ): { wallFilter: WallFilter; wallLocation: string; wallTime: WallTime } => {
-    const f = search.wallFilter;
-    const t = search.wallTime;
-    const loc = search.wallLocation;
-    return {
-      wallFilter: VALID_FILTERS.includes(f as WallFilter) ? (f as WallFilter) : "top",
-      wallTime: VALID_TIMES.includes(t as WallTime) ? (t as WallTime) : "all",
-      wallLocation: typeof loc === "string" ? loc : "",
-    };
-  },
-
   head: () => ({
     meta: [
       { title: "iBloov — Discover places worth loving 💌" },
