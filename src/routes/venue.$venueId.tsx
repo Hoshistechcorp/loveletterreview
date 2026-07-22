@@ -183,12 +183,12 @@ function VenuePage() {
               >
                 <Share2 className="h-3.5 w-3.5" /> Share
               </button>
-              <Link
-                to="/"
+              <button
+                onClick={() => setWriteOpen(true)}
                 className="group inline-flex items-center gap-1.5 rounded-full bg-gradient-love px-4 py-2 text-xs font-bold text-white shadow-glow-pink transition hover:scale-[1.03] active:scale-95"
               >
                 <PenLine className="h-3.5 w-3.5" /> Write a Love Letter
-              </Link>
+              </button>
             </div>
           </div>
         </motion.div>
