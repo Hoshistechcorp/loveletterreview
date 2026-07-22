@@ -165,8 +165,10 @@ function BusinessPage() {
       });
     setSession({ userId: authUser.id, email: authUser.email, ...biz });
     setStep("dashboard");
-    toast.success(`${biz.businessName} is live on iBloov.`);
+    toast.success(editing ? "Business details updated." : `${biz.businessName} is live on iBloov.`);
+    setEditing(false);
   }
+
 
   async function handleSignOut() {
     await supabase.auth.signOut();
