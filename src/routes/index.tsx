@@ -6,6 +6,7 @@ import { Hero } from "@/components/love-letters/Hero";
 import { PlaceFoundCard } from "@/components/love-letters/PlaceFoundCard";
 import { WriteLetterModal } from "@/components/love-letters/WriteLetterModal";
 import { AuthWallModal } from "@/components/love-letters/AuthWallModal";
+import { SuccessOverlay } from "@/components/love-letters/SuccessOverlay";
 import { Link } from "@tanstack/react-router";
 import { OwnerTeaserBanner } from "@/components/love-letters/OwnerTeaserBanner";
 import { Footer } from "@/components/love-letters/Footer";
@@ -43,6 +44,7 @@ function LoveLettersPage() {
   const [writeOpen, setWriteOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [category, setCategory] = useState<HomeCategory>("All");
+  const [successOpen, setSuccessOpen] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<{ rating: number; message: string } | null>(null);
 
   const handleSearch = (name: string, city: string) => {
@@ -63,10 +65,14 @@ function LoveLettersPage() {
       rating,
       message,
     });
-    toast.success("Love Letter sent 💌", {
-      description: `Your note is on its way to ${venue.name}.`,
-    });
-    navigate({ to: "/profile", search: { tab: "letters" } });
+    setSuccessOpen(true);
+    window.setTimeout(() => {
+      setSuccessOpen(false);
+      toast.success("Love Letter sent 💌", {
+        description: `Your note is on its way to ${venue.name}.`,
+      });
+      navigate({ to: "/profile", search: { tab: "letters" } });
+    }, 1800);
   };
 
   const handleSubmit = (rating: number, message: string) => {
@@ -144,6 +150,7 @@ function LoveLettersPage() {
         onClose={() => setAuthOpen(false)}
         onAuthed={handleAuthed}
       />
+      <SuccessOverlay open={successOpen} onClose={() => setSuccessOpen(false)} />
     </div>
   );
 }

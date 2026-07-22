@@ -1,6 +1,7 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Heart,
@@ -14,6 +15,11 @@ import {
 import { trendingVenues, type Review } from "@/lib/love-letters/mockVenues";
 import { Navbar } from "@/components/love-letters/Navbar";
 import { Footer } from "@/components/love-letters/Footer";
+import { WriteLetterModal } from "@/components/love-letters/WriteLetterModal";
+import { AuthWallModal } from "@/components/love-letters/AuthWallModal";
+import { SuccessOverlay } from "@/components/love-letters/SuccessOverlay";
+import { addLetter, getUser, signIn } from "@/lib/love-letters/localStore";
+
 
 export const Route = createFileRoute("/venue/$venueId")({
   component: VenuePage,
@@ -34,7 +40,51 @@ function timeAgo(days: number) {
 
 function VenuePage() {
   const { venue } = Route.useLoaderData();
+  const navigate = useNavigate();
   const [helpful, setHelpful] = useState<Record<string, boolean>>({});
+  const [writeOpen, setWriteOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<{ rating: number; message: string } | null>(null);
+
+  const finalize = (rating: number, message: string) => {
+    addLetter({
+      venueId: venue.id,
+      venueName: venue.name,
+      city: venue.city,
+      rating,
+      message,
+    });
+    setSuccessOpen(true);
+    window.setTimeout(() => {
+      setSuccessOpen(false);
+      toast.success("Love Letter sent 💌", {
+        description: `Your note is on its way to ${venue.name}.`,
+      });
+      navigate({ to: "/profile", search: { tab: "letters" } });
+    }, 1800);
+  };
+
+  const handleSubmit = (rating: number, message: string) => {
+    setWriteOpen(false);
+    if (!getUser()) {
+      setPendingDraft({ rating, message });
+      window.setTimeout(() => setAuthOpen(true), 150);
+    } else {
+      window.setTimeout(() => finalize(rating, message), 150);
+    }
+  };
+
+  const handleAuthed = () => {
+    setAuthOpen(false);
+    if (!getUser()) signIn("guest@ibloov.com", "Guest");
+    if (pendingDraft) {
+      const draft = pendingDraft;
+      setPendingDraft(null);
+      window.setTimeout(() => finalize(draft.rating, draft.message), 200);
+    }
+  };
+
 
   const breakdown = useMemo(() => {
     // Bucket reviews into love tiers
@@ -133,12 +183,12 @@ function VenuePage() {
               >
                 <Share2 className="h-3.5 w-3.5" /> Share
               </button>
-              <Link
-                to="/"
+              <button
+                onClick={() => setWriteOpen(true)}
                 className="group inline-flex items-center gap-1.5 rounded-full bg-gradient-love px-4 py-2 text-xs font-bold text-white shadow-glow-pink transition hover:scale-[1.03] active:scale-95"
               >
                 <PenLine className="h-3.5 w-3.5" /> Write a Love Letter
-              </Link>
+              </button>
             </div>
           </div>
         </motion.div>
@@ -267,15 +317,28 @@ function VenuePage() {
               Share what made it special. Your Love Letter joins the public Wall and
               helps other travelers discover their next favorite place.
             </p>
-            <Link
-              to="/"
+            <button
+              onClick={() => setWriteOpen(true)}
               className="mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-love px-5 py-2.5 text-sm font-bold text-white shadow-glow-pink transition hover:scale-[1.03] active:scale-95"
             >
               <PenLine className="h-4 w-4" /> Write a Love Letter
-            </Link>
+            </button>
           </div>
         </div>
       </div>
+
+      <WriteLetterModal
+        open={writeOpen}
+        venue={venue}
+        onClose={() => setWriteOpen(false)}
+        onSubmit={handleSubmit}
+      />
+      <AuthWallModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onAuthed={handleAuthed}
+      />
+      <SuccessOverlay open={successOpen} onClose={() => setSuccessOpen(false)} />
 
       <Footer />
     </div>
