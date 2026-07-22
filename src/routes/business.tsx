@@ -16,11 +16,13 @@ import {
   Mail,
   MapPin,
   MessageCircle,
+  Pencil,
   Send,
   Sparkles,
   Tag,
   TrendingUp,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { trendingVenues, type Review, type TrendingVenue } from "@/lib/love-letters/mockVenues";
 import { Navbar } from "@/components/love-letters/Navbar";
