@@ -40,7 +40,51 @@ function timeAgo(days: number) {
 
 function VenuePage() {
   const { venue } = Route.useLoaderData();
+  const navigate = useNavigate();
   const [helpful, setHelpful] = useState<Record<string, boolean>>({});
+  const [writeOpen, setWriteOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<{ rating: number; message: string } | null>(null);
+
+  const finalize = (rating: number, message: string) => {
+    addLetter({
+      venueId: venue.id,
+      venueName: venue.name,
+      city: venue.city,
+      rating,
+      message,
+    });
+    setSuccessOpen(true);
+    window.setTimeout(() => {
+      setSuccessOpen(false);
+      toast.success("Love Letter sent 💌", {
+        description: `Your note is on its way to ${venue.name}.`,
+      });
+      navigate({ to: "/profile", search: { tab: "letters" } });
+    }, 1800);
+  };
+
+  const handleSubmit = (rating: number, message: string) => {
+    setWriteOpen(false);
+    if (!getUser()) {
+      setPendingDraft({ rating, message });
+      window.setTimeout(() => setAuthOpen(true), 150);
+    } else {
+      window.setTimeout(() => finalize(rating, message), 150);
+    }
+  };
+
+  const handleAuthed = () => {
+    setAuthOpen(false);
+    if (!getUser()) signIn("guest@ibloov.com", "Guest");
+    if (pendingDraft) {
+      const draft = pendingDraft;
+      setPendingDraft(null);
+      window.setTimeout(() => finalize(draft.rating, draft.message), 200);
+    }
+  };
+
 
   const breakdown = useMemo(() => {
     // Bucket reviews into love tiers
