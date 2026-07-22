@@ -1110,14 +1110,21 @@ function AnalyticsTab({ venue }: { venue: TrendingVenue }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => {
           const Icon = s.icon;
           return (
-            <div key={s.label} className="glass rounded-2xl p-4">
-              <Icon className="h-4 w-4 text-mint" />
-              <p className="mt-2 font-display text-2xl font-bold">{s.value}</p>
-              <p className="text-[11px] uppercase tracking-wider text-foreground/55">
+            <div
+              key={s.label}
+              className="rounded-2xl border border-foreground/8 bg-card p-4 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-mint/10">
+                  <Icon className="h-4 w-4 text-mint" />
+                </span>
+              </div>
+              <p className="mt-3 font-display text-2xl font-bold leading-none">{s.value}</p>
+              <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wider text-foreground/55">
                 {s.label}
               </p>
             </div>
@@ -1125,32 +1132,39 @@ function AnalyticsTab({ venue }: { venue: TrendingVenue }) {
         })}
       </div>
 
-      <div className="glass rounded-2xl p-5">
-        <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-wider text-foreground/70">
-          Letters per week (last 4 weeks)
-        </h3>
-        <div className="flex h-32 items-end gap-3">
+      <div className="rounded-2xl border border-foreground/8 bg-card p-5 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-base font-bold">Letters over time</h3>
+            <p className="text-[11px] text-foreground/55">Last 4 weeks</p>
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-mint/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-mint">
+            <TrendingUp className="h-3 w-3" /> Weekly
+          </span>
+        </div>
+        <div className="flex h-36 items-end gap-3">
           {buckets.map((b, i) => (
-            <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
-              <div
-                className="w-full rounded-t-lg bg-gradient-love transition-all"
-                style={{ height: `${(b / maxB) * 100}%`, minHeight: 4 }}
-              />
+            <div key={i} className="flex flex-1 flex-col items-center gap-2">
+              <div className="flex w-full flex-1 items-end">
+                <div
+                  className="w-full rounded-t-lg bg-gradient-love transition-all"
+                  style={{ height: `${(b / maxB) * 100}%`, minHeight: 4 }}
+                />
+              </div>
               <span className="text-[10px] font-medium text-foreground/50">
                 {i === 3 ? "This wk" : `${3 - i + 1}w ago`}
               </span>
-              <span className="text-[10px] font-bold text-foreground/70">{b}</span>
+              <span className="text-[10px] font-bold text-foreground/75">{b}</span>
             </div>
           ))}
         </div>
       </div>
 
       {keywords.length > 0 && (
-        <div className="glass rounded-2xl p-5">
-          <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-wider text-foreground/70">
-            Top words travelers use
-          </h3>
-          <div className="flex flex-wrap gap-2">
+        <div className="rounded-2xl border border-foreground/8 bg-card p-5 shadow-sm">
+          <h3 className="font-display text-base font-bold">Top words travelers use</h3>
+          <p className="text-[11px] text-foreground/55">Pulled from recent letters</p>
+          <div className="mt-3 flex flex-wrap gap-2">
             {keywords.map((k) => (
               <span
                 key={k}
