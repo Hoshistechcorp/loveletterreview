@@ -973,8 +973,10 @@ function InboxTab({ venue }: { venue: TrendingVenue }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: i * 0.04 }}
-              className={`glass overflow-hidden rounded-2xl transition ${
-                isUnread ? "ring-2 ring-neon-pink/30" : ""
+              className={`overflow-hidden rounded-2xl border bg-card transition ${
+                isUnread
+                  ? "border-neon-pink/30 shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_8px_24px_-12px_rgba(236,72,153,0.25)]"
+                  : "border-foreground/8 shadow-sm hover:border-foreground/15"
               }`}
             >
               <button
