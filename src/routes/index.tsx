@@ -13,7 +13,7 @@ import { CategoryTabs, type HomeCategory } from "@/components/love-letters/Categ
 import { TrendingDestinations } from "@/components/love-letters/TrendingDestinations";
 import { TopVenuesGrid } from "@/components/love-letters/TopVenuesGrid";
 import { mockSearchVenue, type Venue } from "@/lib/love-letters/mockVenues";
-import { addLetter, getUser } from "@/lib/love-letters/localStore";
+import { addLetter, getUser, signIn } from "@/lib/love-letters/localStore";
 
 const VALID_FILTERS: WallFilter[] = ["top", "most", "new"];
 const VALID_TIMES: WallTime[] = ["today", "week", "month", "all"];
@@ -98,6 +98,7 @@ function LoveLettersPage() {
 
   const handleAuthed = () => {
     setAuthOpen(false);
+    if (!getUser()) signIn("guest@ibloov.com", "Guest");
     if (pendingDraft) {
       const draft = pendingDraft;
       setPendingDraft(null);
