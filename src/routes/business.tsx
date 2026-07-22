@@ -706,6 +706,20 @@ function Dashboard({
   const venue = useMemo(() => sessionToVenue(session), [session]);
   const [tab, setTab] = useState<Tab>("inbox");
 
+  const reviews = venue.reviews;
+  const avg = reviews.length
+    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+    : "—";
+  const [readMap, setReadMap] = useState<Record<string, string[]>>({});
+  useEffect(() => setReadMap(loadRead()), []);
+  const unreadCount = reviews.filter((r) => !(readMap[venue.id] ?? []).includes(r.id)).length;
+
+  const headerStats = [
+    { label: "Unread", value: unreadCount, tone: "pink" as const },
+    { label: "Total letters", value: venue.loveCount },
+    { label: "Avg rating", value: avg },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -713,39 +727,99 @@ function Dashboard({
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.35 }}
     >
-      <div className="glass mb-4 flex flex-col items-start gap-3 rounded-3xl p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <div className="flex items-center gap-3">
-          <img
-            src={venue.photo}
-            alt={venue.name}
-            className="h-14 w-14 rounded-2xl object-cover"
-          />
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-mint">
-              Business dashboard
-            </p>
-            <h1 className="font-display text-xl font-bold sm:text-2xl">{venue.name}</h1>
-            <p className="text-xs text-foreground/55">
-              {session.email} · {venue.city}
-              {venue.country ? `, ${venue.country}` : ""}
-            </p>
+      {/* Header card */}
+      <div className="mb-5 overflow-hidden rounded-3xl border border-foreground/8 bg-card shadow-sm">
+        <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div className="flex items-start gap-4">
+            <div className="relative">
+              <img
+                src={venue.photo}
+                alt={venue.name}
+                className="h-16 w-16 rounded-2xl object-cover ring-1 ring-foreground/10"
+              />
+              <span className="absolute -bottom-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-mint text-white ring-2 ring-card">
+                <Check className="h-3 w-3" strokeWidth={3} />
+              </span>
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 rounded-full bg-mint/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-mint">
+                  Verified business
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-foreground/10 px-2 py-0.5 text-[10px] font-semibold text-foreground/60">
+                  <Tag className="h-2.5 w-2.5" /> {venue.category}
+                </span>
+              </div>
+              <h1 className="mt-1.5 font-display text-2xl font-bold leading-tight sm:text-3xl">
+                {venue.name}
+              </h1>
+              <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-foreground/55">
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> {venue.city}
+                  {venue.country ? `, ${venue.country}` : ""}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Mail className="h-3 w-3" /> {session.email}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {venue.website && (
+              <a
+                href={venue.website.startsWith("http") ? venue.website : `https://${venue.website}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 bg-foreground/[0.02] px-3.5 py-2 text-xs font-semibold text-foreground/70 transition hover:border-mint/40 hover:text-foreground"
+              >
+                <Globe className="h-3.5 w-3.5" /> Website
+              </a>
+            )}
+            <Link
+              to="/venue/$venueId"
+              params={{ venueId: venue.id }}
+              className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-2 text-xs font-semibold text-background transition hover:opacity-90"
+            >
+              View public page <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <button
+              onClick={onSignOut}
+              className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 bg-foreground/[0.02] px-3 py-2 text-xs font-semibold text-foreground/60 transition hover:border-neon-pink/40 hover:text-neon-pink"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
           </div>
         </div>
-        <button
-          onClick={onSignOut}
-          className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 bg-foreground/[0.03] px-3.5 py-1.5 text-xs font-semibold text-foreground/70 transition hover:border-neon-pink/40 hover:text-neon-pink"
-        >
-          <LogOut className="h-3.5 w-3.5" /> Sign out
-        </button>
+
+        {/* Stat strip */}
+        <div className="grid grid-cols-3 divide-x divide-foreground/8 border-t border-foreground/8 bg-foreground/[0.015]">
+          {headerStats.map((s) => (
+            <div key={s.label} className="px-5 py-3 sm:px-6 sm:py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-foreground/50">
+                {s.label}
+              </p>
+              <p
+                className={`mt-0.5 font-display text-xl font-bold sm:text-2xl ${
+                  s.tone === "pink" && Number(s.value) > 0 ? "text-neon-pink" : "text-foreground"
+                }`}
+              >
+                {s.value}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="mb-4 flex gap-1.5 overflow-x-auto">
+      {/* Segmented tabs */}
+      <div className="mb-5 flex gap-1 overflow-x-auto rounded-2xl border border-foreground/8 bg-foreground/[0.02] p-1">
         {(
           [
-            { id: "inbox", label: "Inbox", icon: Inbox },
+            { id: "inbox", label: "Inbox", icon: Inbox, badge: unreadCount },
             { id: "analytics", label: "Analytics", icon: BarChart3 },
             { id: "respond", label: "Public response", icon: MessageCircle },
-          ] as { id: Tab; label: string; icon: typeof Inbox }[]
+          ] as { id: Tab; label: string; icon: typeof Inbox; badge?: number }[]
         ).map((t) => {
           const Icon = t.icon;
           const active = tab === t.id;
@@ -753,14 +827,23 @@ function Dashboard({
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition sm:text-sm ${
+              className={`relative inline-flex shrink-0 flex-1 items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition sm:text-sm ${
                 active
-                  ? "border-transparent bg-gradient-love text-white shadow-glow-pink"
-                  : "border-foreground/15 bg-foreground/[0.03] text-foreground/70 hover:border-mint/40"
+                  ? "bg-card text-foreground shadow-sm"
+                  : "text-foreground/55 hover:text-foreground"
               }`}
             >
               <Icon className="h-3.5 w-3.5" />
               {t.label}
+              {t.badge ? (
+                <span
+                  className={`ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
+                    active ? "bg-neon-pink text-white" : "bg-neon-pink/15 text-neon-pink"
+                  }`}
+                >
+                  {t.badge}
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -833,10 +916,12 @@ function InboxTab({ venue }: { venue: TrendingVenue }) {
 
   if (letters.length === 0) {
     return (
-      <div className="glass rounded-3xl p-8 text-center">
-        <Heart className="mx-auto h-8 w-8 text-neon-pink" />
-        <h3 className="mt-2 font-display text-lg font-bold">No letters yet</h3>
-        <p className="mt-1 text-sm text-foreground/60">
+      <div className="rounded-3xl border border-dashed border-foreground/15 bg-card p-10 text-center">
+        <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-neon-pink/10">
+          <Heart className="h-5 w-5 text-neon-pink" />
+        </div>
+        <h3 className="mt-3 font-display text-lg font-bold">Your inbox is empty</h3>
+        <p className="mx-auto mt-1 max-w-sm text-sm text-foreground/60">
           Share your iBloov page so travelers can leave Love Letters about {venue.name}.
         </p>
       </div>
@@ -845,14 +930,22 @@ function InboxTab({ venue }: { venue: TrendingVenue }) {
 
   return (
     <div className="space-y-3">
-      <div className="glass flex items-center justify-between rounded-2xl px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-gradient-love px-2 text-xs font-bold text-white shadow-glow-pink">
+      <div className="flex items-center justify-between rounded-2xl border border-foreground/8 bg-card px-4 py-3 shadow-sm">
+        <div className="flex items-center gap-3">
+          <span
+            className={`inline-flex h-9 min-w-9 items-center justify-center rounded-xl px-2 text-sm font-bold ${
+              unread.length > 0
+                ? "bg-neon-pink/10 text-neon-pink"
+                : "bg-mint/10 text-mint"
+            }`}
+          >
             {unread.length}
           </span>
           <div>
             <p className="text-sm font-semibold">
-              {unread.length === 0 ? "All caught up" : `${unread.length} unread Love Letter${unread.length === 1 ? "" : "s"}`}
+              {unread.length === 0
+                ? "All caught up"
+                : `${unread.length} unread Love Letter${unread.length === 1 ? "" : "s"}`}
             </p>
             <p className="text-[11px] text-foreground/55">
               {letters.length} total · click a letter to read & reply
@@ -862,7 +955,7 @@ function InboxTab({ venue }: { venue: TrendingVenue }) {
         {unread.length > 0 && (
           <button
             onClick={markAllRead}
-            className="rounded-full border border-foreground/15 bg-foreground/[0.03] px-3 py-1.5 text-xs font-semibold text-foreground/70 transition hover:border-mint/40 hover:text-foreground"
+            className="rounded-full border border-foreground/15 bg-foreground/[0.02] px-3 py-1.5 text-xs font-semibold text-foreground/70 transition hover:border-mint/40 hover:text-foreground"
           >
             Mark all read
           </button>
@@ -880,8 +973,10 @@ function InboxTab({ venue }: { venue: TrendingVenue }) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: i * 0.04 }}
-              className={`glass overflow-hidden rounded-2xl transition ${
-                isUnread ? "ring-2 ring-neon-pink/30" : ""
+              className={`overflow-hidden rounded-2xl border bg-card transition ${
+                isUnread
+                  ? "border-neon-pink/30 shadow-[0_1px_0_0_rgba(0,0,0,0.02),0_8px_24px_-12px_rgba(236,72,153,0.25)]"
+                  : "border-foreground/8 shadow-sm hover:border-foreground/15"
               }`}
             >
               <button
@@ -1015,14 +1110,21 @@ function AnalyticsTab({ venue }: { venue: TrendingVenue }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {stats.map((s) => {
           const Icon = s.icon;
           return (
-            <div key={s.label} className="glass rounded-2xl p-4">
-              <Icon className="h-4 w-4 text-mint" />
-              <p className="mt-2 font-display text-2xl font-bold">{s.value}</p>
-              <p className="text-[11px] uppercase tracking-wider text-foreground/55">
+            <div
+              key={s.label}
+              className="rounded-2xl border border-foreground/8 bg-card p-4 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-mint/10">
+                  <Icon className="h-4 w-4 text-mint" />
+                </span>
+              </div>
+              <p className="mt-3 font-display text-2xl font-bold leading-none">{s.value}</p>
+              <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wider text-foreground/55">
                 {s.label}
               </p>
             </div>
@@ -1030,32 +1132,39 @@ function AnalyticsTab({ venue }: { venue: TrendingVenue }) {
         })}
       </div>
 
-      <div className="glass rounded-2xl p-5">
-        <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-wider text-foreground/70">
-          Letters per week (last 4 weeks)
-        </h3>
-        <div className="flex h-32 items-end gap-3">
+      <div className="rounded-2xl border border-foreground/8 bg-card p-5 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-base font-bold">Letters over time</h3>
+            <p className="text-[11px] text-foreground/55">Last 4 weeks</p>
+          </div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-mint/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-mint">
+            <TrendingUp className="h-3 w-3" /> Weekly
+          </span>
+        </div>
+        <div className="flex h-36 items-end gap-3">
           {buckets.map((b, i) => (
-            <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
-              <div
-                className="w-full rounded-t-lg bg-gradient-love transition-all"
-                style={{ height: `${(b / maxB) * 100}%`, minHeight: 4 }}
-              />
+            <div key={i} className="flex flex-1 flex-col items-center gap-2">
+              <div className="flex w-full flex-1 items-end">
+                <div
+                  className="w-full rounded-t-lg bg-gradient-love transition-all"
+                  style={{ height: `${(b / maxB) * 100}%`, minHeight: 4 }}
+                />
+              </div>
               <span className="text-[10px] font-medium text-foreground/50">
                 {i === 3 ? "This wk" : `${3 - i + 1}w ago`}
               </span>
-              <span className="text-[10px] font-bold text-foreground/70">{b}</span>
+              <span className="text-[10px] font-bold text-foreground/75">{b}</span>
             </div>
           ))}
         </div>
       </div>
 
       {keywords.length > 0 && (
-        <div className="glass rounded-2xl p-5">
-          <h3 className="mb-3 font-display text-sm font-bold uppercase tracking-wider text-foreground/70">
-            Top words travelers use
-          </h3>
-          <div className="flex flex-wrap gap-2">
+        <div className="rounded-2xl border border-foreground/8 bg-card p-5 shadow-sm">
+          <h3 className="font-display text-base font-bold">Top words travelers use</h3>
+          <p className="text-[11px] text-foreground/55">Pulled from recent letters</p>
+          <div className="mt-3 flex flex-wrap gap-2">
             {keywords.map((k) => (
               <span
                 key={k}
@@ -1104,7 +1213,7 @@ function RespondTab({ venue }: { venue: TrendingVenue }) {
 
   return (
     <div className="space-y-4">
-      <div className="glass rounded-2xl p-5">
+      <div className="rounded-2xl border border-foreground/8 bg-card p-5 shadow-sm">
         <h3 className="font-display text-base font-bold">Say thanks publicly</h3>
         <p className="mt-1 text-xs text-foreground/60">
           One short line from {venue.name} shown beneath your featured letter on the Wall
@@ -1147,7 +1256,7 @@ function RespondTab({ venue }: { venue: TrendingVenue }) {
       </div>
 
       {existing && (
-        <div className="glass rounded-2xl p-5">
+        <div className="rounded-2xl border border-foreground/8 bg-card p-5 shadow-sm">
           <div className="mb-2 flex items-center gap-2">
             <div className="inline-flex items-center gap-1 rounded-full bg-mint/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-mint">
               <Check className="h-3 w-3" /> Live
