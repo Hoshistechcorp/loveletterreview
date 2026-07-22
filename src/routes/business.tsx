@@ -16,11 +16,13 @@ import {
   Mail,
   MapPin,
   MessageCircle,
+  Pencil,
   Send,
   Sparkles,
   Tag,
   TrendingUp,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { trendingVenues, type Review, type TrendingVenue } from "@/lib/love-letters/mockVenues";
 import { Navbar } from "@/components/love-letters/Navbar";
@@ -94,6 +96,8 @@ function BusinessPage() {
   const [authUser, setAuthUser] = useState<{ id: string; email: string } | null>(null);
   const [session, setSession] = useState<OwnerSession | null>(null);
   const [bootstrapping, setBootstrapping] = useState(true);
+  const [editing, setEditing] = useState(false);
+
 
   useEffect(() => {
     let active = true;
@@ -161,8 +165,10 @@ function BusinessPage() {
       });
     setSession({ userId: authUser.id, email: authUser.email, ...biz });
     setStep("dashboard");
-    toast.success(`${biz.businessName} is live on iBloov.`);
+    toast.success(editing ? "Business details updated." : `${biz.businessName} is live on iBloov.`);
+    setEditing(false);
   }
+
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -194,13 +200,21 @@ function BusinessPage() {
                 key="onboarding"
                 email={authUser.email}
                 suggested={venueFromLink}
+                initial={editing && session ? session : null}
                 onSubmit={handleOnboard}
+                onCancel={editing && session ? () => { setEditing(false); setStep("dashboard"); } : undefined}
               />
             )}
             {step === "dashboard" && session && (
-              <Dashboard key="dashboard" session={session} onSignOut={handleSignOut} />
+              <Dashboard
+                key="dashboard"
+                session={session}
+                onSignOut={handleSignOut}
+                onEdit={() => { setEditing(true); setStep("onboarding"); }}
+              />
             )}
           </AnimatePresence>
+
         )}
       </div>
       <Footer />
@@ -477,19 +491,25 @@ function slugify(s: string) {
 function OnboardingStep({
   email,
   suggested,
+  initial,
   onSubmit,
+  onCancel,
 }: {
   email: string;
   suggested: TrendingVenue | null;
+  initial?: OwnerBusiness | null;
   onSubmit: (b: OwnerBusiness) => void;
+  onCancel?: () => void;
 }) {
-  const [name, setName] = useState(suggested?.name ?? "");
-  const [city, setCity] = useState(suggested?.city ?? "");
-  const [country, setCountry] = useState(suggested?.country ?? "");
-  const [category, setCategory] = useState(suggested?.category ?? CATEGORIES[0]);
-  const [website, setWebsite] = useState("");
-  const [address, setAddress] = useState("");
-  const [description, setDescription] = useState(suggested?.excerpt ?? "");
+  const isEdit = !!initial;
+  const [name, setName] = useState(initial?.businessName ?? suggested?.name ?? "");
+  const [city, setCity] = useState(initial?.city ?? suggested?.city ?? "");
+  const [country, setCountry] = useState(initial?.country ?? suggested?.country ?? "");
+  const [category, setCategory] = useState(initial?.category ?? suggested?.category ?? CATEGORIES[0]);
+  const [website, setWebsite] = useState(initial?.website ?? "");
+  const [address, setAddress] = useState(initial?.address ?? "");
+  const [description, setDescription] = useState(initial?.description ?? suggested?.excerpt ?? "");
+
 
   const canSubmit =
     name.trim().length >= 2 &&
@@ -501,7 +521,8 @@ function OnboardingStep({
     e.preventDefault();
     if (!canSubmit) return;
     onSubmit({
-      businessId: suggested?.id ?? `biz-${slugify(name)}-${Date.now().toString(36)}`,
+      businessId: initial?.businessId ?? suggested?.id ?? `biz-${slugify(name)}-${Date.now().toString(36)}`,
+
       businessName: name.trim(),
       city: city.trim(),
       country: country.trim(),
@@ -509,7 +530,7 @@ function OnboardingStep({
       website: website.trim(),
       address: address.trim(),
       description: description.trim(),
-      photo: suggested?.photo ?? DEFAULT_PHOTO,
+      photo: initial?.photo ?? suggested?.photo ?? DEFAULT_PHOTO,
     });
   }
 
@@ -523,15 +544,16 @@ function OnboardingStep({
     >
       <div className="mb-5 text-center">
         <span className="inline-flex items-center gap-1 rounded-full border border-mint/30 bg-mint/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-mint">
-          <Building2 className="h-3 w-3" /> List your business
+          <Building2 className="h-3 w-3" /> {isEdit ? "Edit your business" : "List your business"}
         </span>
         <h1 className="mt-3 font-display text-2xl font-bold sm:text-3xl">
-          Tell us about your business
+          {isEdit ? "Update your business details" : "Tell us about your business"}
         </h1>
         <p className="mt-1 text-sm text-foreground/60">
           Signed in as <span className="font-semibold text-foreground/80">{email}</span>. These details power your Wall of Love profile.
         </p>
       </div>
+
 
       <form onSubmit={handleSubmit} className="glass space-y-3 rounded-3xl p-5 sm:p-7">
         <Field label="Business name" required>
@@ -627,13 +649,25 @@ function OnboardingStep({
           </div>
         </Field>
 
-        <button
-          type="submit"
-          disabled={!canSubmit}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-love px-4 py-3 text-sm font-bold text-white shadow-glow-pink transition hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-        >
-          Create my business profile <ArrowRight className="h-4 w-4" />
-        </button>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row">
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-foreground/15 bg-foreground/[0.02] px-4 py-3 text-sm font-semibold text-foreground/70 transition hover:border-foreground/30 hover:text-foreground sm:w-auto sm:px-6"
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-gradient-love px-4 py-3 text-sm font-bold text-white shadow-glow-pink transition hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+          >
+            {isEdit ? "Save changes" : "Create my business profile"} <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+
       </form>
     </motion.div>
   );
@@ -699,10 +733,13 @@ function sessionToVenue(session: OwnerSession): TrendingVenue {
 function Dashboard({
   session,
   onSignOut,
+  onEdit,
 }: {
   session: OwnerSession;
   onSignOut: () => void;
+  onEdit: () => void;
 }) {
+
   const venue = useMemo(() => sessionToVenue(session), [session]);
   const [tab, setTab] = useState<Tab>("inbox");
 
@@ -776,6 +813,12 @@ function Dashboard({
                 <Globe className="h-3.5 w-3.5" /> Website
               </a>
             )}
+            <button
+              onClick={onEdit}
+              className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 bg-foreground/[0.02] px-3.5 py-2 text-xs font-semibold text-foreground/70 transition hover:border-mint/40 hover:text-foreground"
+            >
+              <Pencil className="h-3.5 w-3.5" /> Edit details
+            </button>
             <Link
               to="/venue/$venueId"
               params={{ venueId: venue.id }}
@@ -783,6 +826,7 @@ function Dashboard({
             >
               View public page <ArrowRight className="h-3.5 w-3.5" />
             </Link>
+
             <button
               onClick={onSignOut}
               className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 bg-foreground/[0.02] px-3 py-2 text-xs font-semibold text-foreground/60 transition hover:border-neon-pink/40 hover:text-neon-pink"
