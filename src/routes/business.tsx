@@ -1213,7 +1213,7 @@ function RespondTab({ venue }: { venue: TrendingVenue }) {
 
   return (
     <div className="space-y-4">
-      <div className="glass rounded-2xl p-5">
+      <div className="rounded-2xl border border-foreground/8 bg-card p-5 shadow-sm">
         <h3 className="font-display text-base font-bold">Say thanks publicly</h3>
         <p className="mt-1 text-xs text-foreground/60">
           One short line from {venue.name} shown beneath your featured letter on the Wall
@@ -1256,7 +1256,7 @@ function RespondTab({ venue }: { venue: TrendingVenue }) {
       </div>
 
       {existing && (
-        <div className="glass rounded-2xl p-5">
+        <div className="rounded-2xl border border-foreground/8 bg-card p-5 shadow-sm">
           <div className="mb-2 flex items-center gap-2">
             <div className="inline-flex items-center gap-1 rounded-full bg-mint/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-mint">
               <Check className="h-3 w-3" /> Live
