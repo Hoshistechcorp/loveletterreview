@@ -1,6 +1,7 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Heart,
@@ -14,6 +15,11 @@ import {
 import { trendingVenues, type Review } from "@/lib/love-letters/mockVenues";
 import { Navbar } from "@/components/love-letters/Navbar";
 import { Footer } from "@/components/love-letters/Footer";
+import { WriteLetterModal } from "@/components/love-letters/WriteLetterModal";
+import { AuthWallModal } from "@/components/love-letters/AuthWallModal";
+import { SuccessOverlay } from "@/components/love-letters/SuccessOverlay";
+import { addLetter, getUser, signIn } from "@/lib/love-letters/localStore";
+
 
 export const Route = createFileRoute("/venue/$venueId")({
   component: VenuePage,
