@@ -733,10 +733,13 @@ function sessionToVenue(session: OwnerSession): TrendingVenue {
 function Dashboard({
   session,
   onSignOut,
+  onEdit,
 }: {
   session: OwnerSession;
   onSignOut: () => void;
+  onEdit: () => void;
 }) {
+
   const venue = useMemo(() => sessionToVenue(session), [session]);
   const [tab, setTab] = useState<Tab>("inbox");
 
