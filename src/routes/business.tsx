@@ -530,7 +530,7 @@ function OnboardingStep({
       website: website.trim(),
       address: address.trim(),
       description: description.trim(),
-      photo: suggested?.photo ?? DEFAULT_PHOTO,
+      photo: initial?.photo ?? suggested?.photo ?? DEFAULT_PHOTO,
     });
   }
 
