@@ -813,6 +813,12 @@ function Dashboard({
                 <Globe className="h-3.5 w-3.5" /> Website
               </a>
             )}
+            <button
+              onClick={onEdit}
+              className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 bg-foreground/[0.02] px-3.5 py-2 text-xs font-semibold text-foreground/70 transition hover:border-mint/40 hover:text-foreground"
+            >
+              <Pencil className="h-3.5 w-3.5" /> Edit details
+            </button>
             <Link
               to="/venue/$venueId"
               params={{ venueId: venue.id }}
@@ -820,6 +826,7 @@ function Dashboard({
             >
               View public page <ArrowRight className="h-3.5 w-3.5" />
             </Link>
+
             <button
               onClick={onSignOut}
               className="inline-flex items-center gap-1.5 rounded-full border border-foreground/15 bg-foreground/[0.02] px-3 py-2 text-xs font-semibold text-foreground/60 transition hover:border-neon-pink/40 hover:text-neon-pink"
