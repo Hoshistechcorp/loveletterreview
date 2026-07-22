@@ -521,7 +521,8 @@ function OnboardingStep({
     e.preventDefault();
     if (!canSubmit) return;
     onSubmit({
-      businessId: suggested?.id ?? `biz-${slugify(name)}-${Date.now().toString(36)}`,
+      businessId: initial?.businessId ?? suggested?.id ?? `biz-${slugify(name)}-${Date.now().toString(36)}`,
+
       businessName: name.trim(),
       city: city.trim(),
       country: country.trim(),
