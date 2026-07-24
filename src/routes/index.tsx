@@ -114,6 +114,8 @@ function LoveLettersPage() {
         <TrendingDestinations />
         <TopVenuesGrid category={category} />
 
+        <RankingHub />
+
         <WallOfLove />
 
         <div className="mx-auto max-w-5xl px-4 pb-12">
