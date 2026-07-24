@@ -48,6 +48,8 @@ export type TrendingVenue = Venue & {
   createdAt: number; // ms timestamp — used by time filter
   photo: string;
   reviews: Review[];
+  lat: number;
+  lng: number;
 };
 
 export type SavedLetter = {
