@@ -726,6 +726,8 @@ function sessionToVenue(session: OwnerSession): TrendingVenue {
     createdAt: Date.now(),
     photo: session.photo || DEFAULT_PHOTO,
     reviews: [],
+    lat: 0,
+    lng: 0,
   };
 }
 

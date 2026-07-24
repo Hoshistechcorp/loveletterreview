@@ -48,6 +48,8 @@ export type TrendingVenue = Venue & {
   createdAt: number; // ms timestamp — used by time filter
   photo: string;
   reviews: Review[];
+  lat: number;
+  lng: number;
 };
 
 export type SavedLetter = {
@@ -75,7 +77,36 @@ const DAY = 24 * 60 * 60 * 1000;
 const now = Date.now();
 const ago = (d: number) => now - d * DAY;
 
-type RawVenue = Omit<TrendingVenue, "categoryGroup" | "photo" | "reviews">;
+type RawVenue = Omit<TrendingVenue, "categoryGroup" | "photo" | "reviews" | "lat" | "lng">;
+
+const coordsById: Record<string, { lat: number; lng: number }> = {
+  "1": { lat: 30.2672, lng: -97.7431 }, // Austin
+  "2": { lat: 40.6782, lng: -73.9442 }, // Brooklyn
+  "3": { lat: 29.9511, lng: -90.0715 }, // New Orleans
+  "4": { lat: 34.0522, lng: -118.2437 }, // LA
+  "5": { lat: 25.7617, lng: -80.1918 }, // Miami
+  "6": { lat: 41.8781, lng: -87.6298 }, // Chicago
+  "7": { lat: 48.8566, lng: 2.3522 }, // Paris
+  "8": { lat: 35.6762, lng: 139.6503 }, // Tokyo
+  "9": { lat: 41.3851, lng: 2.1734 }, // Barcelona
+  "10": { lat: 51.5074, lng: -0.1278 }, // London
+  "11": { lat: 10.8231, lng: 106.6297 }, // HCMC
+  "12": { lat: -33.8688, lng: 151.2093 }, // Sydney
+  "13": { lat: -34.6037, lng: -58.3816 }, // BA
+  "14": { lat: 31.6295, lng: -7.9811 }, // Marrakech
+  "15": { lat: 37.9838, lng: 23.7275 }, // Athens
+  "16": { lat: 35.6595, lng: 139.7004 }, // Shibuya
+  "17": { lat: 52.52, lng: 13.405 }, // Berlin
+  "18": { lat: -22.9068, lng: -43.1729 }, // Rio
+  "19": { lat: 20.9101, lng: 107.1839 }, // Halong
+  "20": { lat: 69.6492, lng: 18.9553 }, // Tromsø
+  "21": { lat: 35.0116, lng: 135.7681 }, // Kyoto
+  "22": { lat: 36.4618, lng: 25.3753 }, // Santorini
+  "23": { lat: 51.4968, lng: -115.9281 }, // Banff
+  "24": { lat: 30.3285, lng: 35.4444 }, // Petra
+  "25": { lat: 63.8804, lng: -22.4495 }, // Blue Lagoon
+};
+
 
 const rawTrendingVenues: RawVenue[] = [
   { id: "1", name: "Honeybird Cafe", address: "12 Sunset Blvd", city: "Austin, TX", website: "honeybird.cafe", imageQuery: "cafe interior", claimed: true, rating: 9.8, loveCount: 452, excerpt: "the lavender latte and Sunday vinyl sessions feel like home.", daysAgo: 0, category: "Vinyl café", country: "United States", region: "North America", createdAt: ago(0) },
@@ -194,6 +225,8 @@ export const trendingVenues: TrendingVenue[] = rawTrendingVenues.map((v) => ({
   categoryGroup: categoryGroupFor(v.category),
   photo: photoFor(v.id, v.imageQuery),
   reviews: reviewsFor(v),
+  lat: coordsById[v.id]?.lat ?? 0,
+  lng: coordsById[v.id]?.lng ?? 0,
 }));
 
 export const savedLettersMock: SavedLetter[] = [
