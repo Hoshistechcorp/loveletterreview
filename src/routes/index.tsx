@@ -111,13 +111,20 @@ function LoveLettersPage() {
           </div>
         )}
 
-        <CategoryTabs value={category} onChange={setCategory} />
-        <TrendingDestinations />
-        <TopVenuesGrid category={category} />
+        <SectionTabs
+          sections={{
+            explore: (
+              <>
+                <CategoryTabs value={category} onChange={setCategory} />
+                <TrendingDestinations />
+                <TopVenuesGrid category={category} />
+              </>
+            ),
+            rankings: <RankingHub />,
+            wall: <WallOfLove />,
+          }}
+        />
 
-        <RankingHub />
-
-        <WallOfLove />
 
         <div className="mx-auto max-w-5xl px-4 pb-12">
           <Link
