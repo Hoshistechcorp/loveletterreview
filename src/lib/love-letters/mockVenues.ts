@@ -225,6 +225,8 @@ export const trendingVenues: TrendingVenue[] = rawTrendingVenues.map((v) => ({
   categoryGroup: categoryGroupFor(v.category),
   photo: photoFor(v.id, v.imageQuery),
   reviews: reviewsFor(v),
+  lat: coordsById[v.id]?.lat ?? 0,
+  lng: coordsById[v.id]?.lng ?? 0,
 }));
 
 export const savedLettersMock: SavedLetter[] = [
