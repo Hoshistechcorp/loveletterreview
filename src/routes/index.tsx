@@ -15,6 +15,7 @@ import { TrendingDestinations } from "@/components/love-letters/TrendingDestinat
 import { TopVenuesGrid } from "@/components/love-letters/TopVenuesGrid";
 import { WallOfLove } from "@/components/love-letters/WallOfLove";
 import { RankingHub } from "@/components/love-letters/RankingHub";
+import { SectionTabs } from "@/components/love-letters/SectionTabs";
 import { mockSearchVenue, type Venue } from "@/lib/love-letters/mockVenues";
 import { addLetter, getUser, signIn } from "@/lib/love-letters/localStore";
 
@@ -110,13 +111,20 @@ function LoveLettersPage() {
           </div>
         )}
 
-        <CategoryTabs value={category} onChange={setCategory} />
-        <TrendingDestinations />
-        <TopVenuesGrid category={category} />
+        <SectionTabs
+          sections={{
+            explore: (
+              <>
+                <CategoryTabs value={category} onChange={setCategory} />
+                <TrendingDestinations />
+                <TopVenuesGrid category={category} />
+              </>
+            ),
+            rankings: <RankingHub />,
+            wall: <WallOfLove />,
+          }}
+        />
 
-        <RankingHub />
-
-        <WallOfLove />
 
         <div className="mx-auto max-w-5xl px-4 pb-12">
           <Link
