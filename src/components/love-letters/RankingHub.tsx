@@ -1,15 +1,28 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import {
   Building2,
+  Check,
   Globe2,
   Heart,
   MapPin,
+  Share2,
   Sparkles,
   TrendingUp,
   Users,
+  X,
 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { trendingVenues, type TrendingVenue } from "@/lib/love-letters/mockVenues";
 
 type TimeKey = "today" | "week" | "month" | "all";
@@ -22,14 +35,16 @@ const TIME_OPTIONS: { id: TimeKey; label: string; days: number | null }[] = [
   { id: "all", label: "All time", days: null },
 ];
 
+const STORAGE_KEY = "rankingHub:v1";
+const DEFAULT_RADIUS = 5000; // km
+
 // Equirectangular projection onto a 1000x500 SVG viewbox.
 const project = (lat: number, lng: number) => ({
   x: ((lng + 180) / 360) * 1000,
   y: ((90 - lat) / 180) * 500,
 });
 
-// Haversine distance in km
-function distanceKm(a: TrendingVenue, b: TrendingVenue) {
+function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6371;
   const toRad = (d: number) => (d * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat);
@@ -40,10 +55,73 @@ function distanceKm(a: TrendingVenue, b: TrendingVenue) {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+type Persisted = {
+  time: TimeKey;
+  audience: Audience;
+  selectedId: string;
+  radius: number;
+};
+
+function readInitialState(): Persisted {
+  const fallback: Persisted = {
+    time: "all",
+    audience: "people",
+    selectedId: "1",
+    radius: DEFAULT_RADIUS,
+  };
+  if (typeof window === "undefined") return fallback;
+
+  // URL params take priority (shareable links)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl: Partial<Persisted> = {};
+    const t = params.get("rhTime") as TimeKey | null;
+    if (t && TIME_OPTIONS.some((o) => o.id === t)) fromUrl.time = t;
+    const a = params.get("rhAud");
+    if (a === "people" || a === "stakeholders") fromUrl.audience = a;
+    const s = params.get("rhSel");
+    if (s && trendingVenues.some((v) => v.id === s)) fromUrl.selectedId = s;
+    const r = Number(params.get("rhRadius"));
+    if (Number.isFinite(r) && r > 0) fromUrl.radius = r;
+    if (Object.keys(fromUrl).length > 0) return { ...fallback, ...fromUrl };
+  } catch {}
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) return { ...fallback, ...JSON.parse(raw) };
+  } catch {}
+  return fallback;
+}
+
 export function RankingHub() {
+  const [hydrated, setHydrated] = useState(false);
   const [time, setTime] = useState<TimeKey>("all");
   const [audience, setAudience] = useState<Audience>("people");
   const [selectedId, setSelectedId] = useState<string>("1");
+  const [radius, setRadius] = useState<number>(DEFAULT_RADIUS);
+  const [drawerId, setDrawerId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  // Hydrate from URL / localStorage after mount to avoid SSR mismatch
+  useEffect(() => {
+    const init = readInitialState();
+    setTime(init.time);
+    setAudience(init.audience);
+    setSelectedId(init.selectedId);
+    setRadius(init.radius);
+    setHydrated(true);
+  }, []);
+
+  // Persist
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ time, audience, selectedId, radius }),
+      );
+    } catch {}
+  }, [hydrated, time, audience, selectedId, radius]);
 
   const timeCutoff = TIME_OPTIONS.find((t) => t.id === time)?.days ?? null;
 
@@ -53,7 +131,6 @@ export function RankingHub() {
     return trendingVenues.filter((v) => v.createdAt >= since);
   }, [timeCutoff]);
 
-  // Audience shifts the ranking weight: people care about ratings, stakeholders about volume.
   const ranked = useMemo(() => {
     const copy = [...inWindow];
     if (audience === "people") {
@@ -79,32 +156,66 @@ export function RankingHub() {
     return inWindow
       .filter((v) => v.id !== selected.id)
       .map((v) => ({ v, km: distanceKm(selected, v) }))
+      .filter(({ km }) => km <= radius)
       .sort((a, b) => a.km - b.km)
-      .slice(0, 5);
-  }, [inWindow, selected]);
+      .slice(0, 8);
+  }, [inWindow, selected, radius]);
 
   const previewLabel = audience === "people" ? "Traveler score" : "Reach score";
   const secondaryLabel = audience === "people" ? "letters from lovers" : "verified impressions";
 
+  const drawerVenue = drawerId ? trendingVenues.find((v) => v.id === drawerId) ?? null : null;
+  const drawerRank = drawerVenue ? ranked.findIndex((v) => v.id === drawerVenue.id) : -1;
+
+  const handleShare = async () => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("rhTime", time);
+    url.searchParams.set("rhAud", audience);
+    url.searchParams.set("rhSel", selectedId);
+    url.searchParams.set("rhRadius", String(radius));
+    url.hash = "ranking-hub";
+    const link = url.toString();
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      toast.success("Share link copied", {
+        description: "Your current ranking view is captured in the link.",
+      });
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error("Couldn't copy. Long-press to copy the URL manually.");
+    }
+  };
+
   return (
-    <section className="px-4 py-12 sm:py-16">
+    <section id="ranking-hub" className="px-4 py-12 sm:py-16">
       <div className="mx-auto max-w-5xl">
         {/* Header */}
-        <div className="mb-5 sm:mb-7">
-          <p className="text-xs font-semibold uppercase tracking-widest text-mint">
-            <Globe2 className="mr-1 inline h-3.5 w-3.5" /> Ranking Hub · Live pulse
-          </p>
-          <h2 className="mt-2 font-display text-2xl font-bold sm:text-4xl">
-            The <span className="text-gradient-love">World Ranking</span>, mapped
-          </h2>
-          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-            Slide the timeline, switch audience, and explore rankings by place.
-          </p>
+        <div className="mb-5 flex items-start justify-between gap-3 sm:mb-7">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-mint">
+              <Globe2 className="mr-1 inline h-3.5 w-3.5" /> Ranking Hub · Live pulse
+            </p>
+            <h2 className="mt-2 font-display text-2xl font-bold sm:text-4xl">
+              The <span className="text-gradient-love">World Ranking</span>, mapped
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+              Slide the timeline, switch audience, and explore rankings by place.
+            </p>
+          </div>
+          <button
+            onClick={handleShare}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 py-2 text-xs font-semibold text-foreground/80 transition hover:border-mint/40 hover:text-foreground sm:text-sm"
+            aria-label="Copy shareable link of this ranking view"
+          >
+            {copied ? <Check className="h-3.5 w-3.5 text-mint" /> : <Share2 className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline">{copied ? "Copied" : "Share view"}</span>
+          </button>
         </div>
 
-        {/* Controls: timeline slider + audience toggle */}
+        {/* Controls */}
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          {/* Timeline segmented slider */}
           <div className="relative inline-flex rounded-full border border-foreground/10 bg-foreground/[0.03] p-1">
             {TIME_OPTIONS.map((t) => {
               const active = time === t.id;
@@ -121,15 +232,12 @@ export function RankingHub() {
                       className="absolute inset-0 -z-10 rounded-full bg-gradient-love shadow-glow-pink"
                     />
                   )}
-                  <span className={active ? "text-white" : "text-foreground/70"}>
-                    {t.label}
-                  </span>
+                  <span className={active ? "text-white" : "text-foreground/70"}>{t.label}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Audience toggle */}
           <div className="relative inline-flex rounded-full border border-foreground/10 bg-foreground/[0.03] p-1">
             {(
               [
@@ -160,7 +268,7 @@ export function RankingHub() {
           </div>
         </div>
 
-        {/* World Ranking summary */}
+        {/* Summary */}
         <div className="mb-4 grid grid-cols-3 gap-2 sm:gap-3">
           <SummaryCard
             icon={<Sparkles className="h-4 w-4 text-mint" />}
@@ -184,17 +292,15 @@ export function RankingHub() {
 
         {/* Map + Nearby */}
         <div className="grid gap-3 sm:grid-cols-5 sm:gap-4">
-          {/* Map */}
           <div className="glass relative overflow-hidden rounded-3xl sm:col-span-3">
             <div className="p-3 sm:p-4">
               <div className="mb-1 flex items-center justify-between">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/60">
                   Location map
                 </p>
-                <p className="text-[10px] text-foreground/50">Tap a dot to explore</p>
+                <p className="text-[10px] text-foreground/50">Tap a dot to open details</p>
               </div>
               <div className="relative aspect-[2/1] w-full overflow-hidden rounded-2xl bg-gradient-to-br from-mint/[0.06] via-transparent to-neon-pink/[0.06]">
-                {/* Grid backdrop */}
                 <svg
                   viewBox="0 0 1000 500"
                   className="absolute inset-0 h-full w-full"
@@ -216,7 +322,6 @@ export function RankingHub() {
                     </radialGradient>
                   </defs>
                   <rect width="1000" height="500" fill="url(#rh-grid)" className="text-foreground" />
-                  {/* Continent-ish blobs for visual anchor */}
                   <g className="text-mint" fill="url(#rh-glow)">
                     <ellipse cx="230" cy="180" rx="150" ry="90" />
                     <ellipse cx="500" cy="170" rx="150" ry="80" />
@@ -227,14 +332,16 @@ export function RankingHub() {
                   </g>
                 </svg>
 
-                {/* Venue dots */}
                 {inWindow.map((v) => {
                   const { x, y } = project(v.lat, v.lng);
                   const isSel = v.id === selected?.id;
                   return (
                     <button
                       key={v.id}
-                      onClick={() => setSelectedId(v.id)}
+                      onClick={() => {
+                        setSelectedId(v.id);
+                        setDrawerId(v.id);
+                      }}
                       aria-label={`${v.name} in ${v.city}`}
                       className="group absolute -translate-x-1/2 -translate-y-1/2"
                       style={{ left: `${x / 10}%`, top: `${y / 5}%` }}
@@ -256,9 +363,11 @@ export function RankingHub() {
                   );
                 })}
 
-                {/* Selected callout */}
                 {selected && (
-                  <div className="pointer-events-none absolute bottom-2 left-2 right-2 rounded-xl border border-foreground/10 bg-background/85 px-3 py-2 backdrop-blur sm:bottom-3 sm:left-3 sm:right-auto sm:max-w-[60%]">
+                  <button
+                    onClick={() => setDrawerId(selected.id)}
+                    className="absolute bottom-2 left-2 right-2 rounded-xl border border-foreground/10 bg-background/85 px-3 py-2 text-left backdrop-blur transition hover:border-neon-pink/40 sm:bottom-3 sm:left-3 sm:right-auto sm:max-w-[60%]"
+                  >
                     <p className="truncate font-display text-sm font-bold">{selected.name}</p>
                     <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-muted-foreground">
                       <MapPin className="h-3 w-3 text-mint" />
@@ -273,13 +382,13 @@ export function RankingHub() {
                         {selected.loveCount} {audience === "people" ? "letters" : "impressions"}
                       </span>
                     </p>
-                  </div>
+                  </button>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Nearby list */}
+          {/* Nearby list with radius slider */}
           <div className="glass rounded-3xl p-3 sm:col-span-2 sm:p-4">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/60">
@@ -289,6 +398,26 @@ export function RankingHub() {
                 near {selected?.city.split(",")[0]}
               </p>
             </div>
+
+            <div className="mb-3 rounded-2xl border border-foreground/10 bg-foreground/[0.02] px-3 py-2.5">
+              <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-foreground/60">
+                <span>Radius</span>
+                <span className="font-display text-xs text-foreground">
+                  {radius >= 1000
+                    ? `${(radius / 1000).toFixed(radius >= 5000 ? 0 : 1)}k km`
+                    : `${radius} km`}
+                </span>
+              </div>
+              <Slider
+                value={[radius]}
+                onValueChange={(vals) => setRadius(vals[0] ?? DEFAULT_RADIUS)}
+                min={100}
+                max={20000}
+                step={100}
+                aria-label="Search radius"
+              />
+            </div>
+
             <ul className="flex flex-col gap-1.5">
               <AnimatePresence mode="popLayout">
                 {nearby.map(({ v, km }, i) => (
@@ -301,7 +430,7 @@ export function RankingHub() {
                     transition={{ duration: 0.25, delay: i * 0.03 }}
                   >
                     <button
-                      onClick={() => setSelectedId(v.id)}
+                      onClick={() => setDrawerId(v.id)}
                       className="flex w-full items-center gap-2.5 rounded-2xl border border-transparent bg-foreground/[0.02] p-2 text-left transition hover:border-mint/30 hover:bg-mint/[0.04]"
                     >
                       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-mint font-display text-xs font-bold text-white">
@@ -310,7 +439,7 @@ export function RankingHub() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-semibold sm:text-sm">{v.name}</p>
                         <p className="truncate text-[10px] text-muted-foreground">
-                          {v.city} · {Math.round(km).toLocaleString()} km
+                          {v.city} · {Math.round(km).toLocaleString()} km away
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-1 text-[11px] font-semibold">
@@ -322,7 +451,7 @@ export function RankingHub() {
                 ))}
                 {nearby.length === 0 && (
                   <p className="px-2 py-4 text-center text-xs text-muted-foreground">
-                    No neighbors in this window — try a wider timeline.
+                    No places within {radius.toLocaleString()} km — widen the radius.
                   </p>
                 )}
               </AnimatePresence>
@@ -331,14 +460,15 @@ export function RankingHub() {
         </div>
 
         {/* World Ranking leaderboard */}
-        <div className="mt-4 glass rounded-3xl p-3 sm:p-4">
+        <div className="glass mt-4 rounded-3xl p-3 sm:p-4">
           <div className="mb-2 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-neon-pink">
                 World Ranking · Top 5
               </p>
               <p className="text-[11px] text-foreground/60">
-                Ranked by {audience === "people" ? "traveler love" : "verified reach"} · {TIME_OPTIONS.find((t) => t.id === time)?.label}
+                Ranked by {audience === "people" ? "traveler love" : "verified reach"} ·{" "}
+                {TIME_OPTIONS.find((t) => t.id === time)?.label}
               </p>
             </div>
             <Link
@@ -357,10 +487,9 @@ export function RankingHub() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.3, delay: i * 0.04 }}
               >
-                <Link
-                  to="/venue/$venueId"
-                  params={{ venueId: v.id }}
-                  className="flex items-center gap-3 rounded-2xl border border-transparent bg-foreground/[0.02] p-2.5 transition hover:border-neon-pink/30 hover:bg-neon-pink/[0.04]"
+                <button
+                  onClick={() => setDrawerId(v.id)}
+                  className="flex w-full items-center gap-3 rounded-2xl border border-transparent bg-foreground/[0.02] p-2.5 text-left transition hover:border-neon-pink/30 hover:bg-neon-pink/[0.04]"
                 >
                   <span
                     className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl font-display text-sm font-bold ${
@@ -395,13 +524,127 @@ export function RankingHub() {
                       {audience === "people" ? "letters" : "reach"}
                     </p>
                   </div>
-                </Link>
+                </button>
               </motion.li>
             ))}
           </ul>
         </div>
       </div>
+
+      {/* Venue details drawer */}
+      <Sheet open={!!drawerVenue} onOpenChange={(o) => !o && setDrawerId(null)}>
+        <SheetContent side="right" className="w-full max-w-md overflow-y-auto p-0 sm:max-w-lg">
+          {drawerVenue && (
+            <VenueDrawerBody
+              venue={drawerVenue}
+              rank={drawerRank}
+              audience={audience}
+              time={time}
+              distanceFromSelected={
+                selected && selected.id !== drawerVenue.id
+                  ? distanceKm(selected, drawerVenue)
+                  : null
+              }
+              onClose={() => setDrawerId(null)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </section>
+  );
+}
+
+function VenueDrawerBody({
+  venue,
+  rank,
+  audience,
+  time,
+  distanceFromSelected,
+  onClose,
+}: {
+  venue: TrendingVenue;
+  rank: number;
+  audience: Audience;
+  time: TimeKey;
+  distanceFromSelected: number | null;
+  onClose: () => void;
+}) {
+  const timeLabel = TIME_OPTIONS.find((t) => t.id === time)?.label ?? "All time";
+  const metricLabel = audience === "people" ? "Letters" : "Impressions";
+  return (
+    <div className="flex flex-col">
+      <div className="relative h-40 w-full overflow-hidden">
+        {venue.photo ? (
+          <img src={venue.photo} alt={venue.name} className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full bg-gradient-love" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+        <button
+          onClick={onClose}
+          aria-label="Close details"
+          className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-background/80 backdrop-blur transition hover:bg-background"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        {rank >= 0 && (
+          <div className="absolute left-3 top-3 rounded-full bg-background/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-neon-pink backdrop-blur">
+            #{rank + 1} · {timeLabel}
+          </div>
+        )}
+      </div>
+
+      <SheetHeader className="px-5 pt-3 text-left">
+        <SheetTitle className="font-display text-2xl">{venue.name}</SheetTitle>
+        <SheetDescription className="flex items-center gap-1 text-xs">
+          <MapPin className="h-3 w-3 text-mint" />
+          {venue.city} · {venue.country}
+        </SheetDescription>
+      </SheetHeader>
+
+      <div className="grid grid-cols-3 gap-2 px-5 pt-4">
+        <MiniStat label={audience === "people" ? "Traveler score" : "Reach score"} value={venue.rating.toFixed(1)} />
+        <MiniStat label={metricLabel} value={venue.loveCount.toLocaleString()} />
+        <MiniStat
+          label="Distance"
+          value={distanceFromSelected != null ? `${Math.round(distanceFromSelected).toLocaleString()} km` : "—"}
+        />
+      </div>
+
+      {venue.category && (
+        <div className="px-5 pt-3">
+          <span className="inline-flex items-center rounded-full border border-foreground/10 bg-foreground/[0.03] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-foreground/70">
+            {venue.category}
+          </span>
+        </div>
+      )}
+
+      <div className="flex gap-2 px-5 py-5">
+        <Button asChild className="flex-1 rounded-full bg-gradient-love text-white shadow-glow-pink">
+          <Link to="/venue/$venueId" params={{ venueId: venue.id }} onClick={onClose}>
+            Open venue page
+          </Link>
+        </Button>
+        <Button
+          asChild
+          variant="outline"
+          className="rounded-full"
+        >
+          <Link to="/venue/$venueId" params={{ venueId: venue.id }} onClick={onClose}>
+            <Heart className="mr-1 h-4 w-4 text-neon-pink" /> Write letter
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-foreground/10 bg-foreground/[0.03] px-3 py-2">
+      <p className="text-[9px] font-semibold uppercase tracking-wider text-foreground/50">{label}</p>
+      <p className="mt-0.5 font-display text-base font-bold">{value}</p>
+    </div>
   );
 }
 
